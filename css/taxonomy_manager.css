@@ -3,7 +3,7 @@
 #taxonomytree {
   height: 500px;	
   overflow: auto;
-  width: 450px;
+  width: 400px;
   margin: 0;
   padding: 0;
 }
@@ -45,8 +45,8 @@
   display: inline;
 }
 
-.term-checkbox {
-  width: 20px;
+.term-item {
+ /* width: 20px;*/
   float: left;
 }
 

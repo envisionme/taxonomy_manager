@@ -7,7 +7,6 @@
  */
 
 
-
 /**
  * Implementation of hook_menu
  */
@@ -48,7 +47,7 @@ function taxonomy_manager_voc_list() {
     $voc_list[] = l($vocabulary->name, 'admin/content/taxonomy_manager/'. $vocabulary->vid);
   }
   
-  return theme('item_list', $voc_list);
+  return theme('item_list', $voc_list, "Vocabularies:");
   
 }
 
@@ -59,6 +58,7 @@ function taxonomy_manager_form($vid) {
   $module_path = drupal_get_path('module', 'taxonomy_manager'). '/';
   drupal_add_css($module_path. 'css/taxonomy_manager.css');
   drupal_add_js($module_path. 'js/tree.js');
+  drupal_add_js($module_path. 'js/hideForm.js');
   
   $voc = taxonomy_get_vocabulary($vid);
   
@@ -71,42 +71,268 @@ function taxonomy_manager_form($vid) {
     '#title' => $voc->name,
     '#theme' => 'taxonomy_manager_elements',
     '#tree' => TRUE,
+    '#weight' => 10,
     '#prefix' => '<div id="taxonomytree">',
     '#suffix' => '</div>',
   );
+  $tree = taxonomy_get_tree($vid);
+  $form['taxonomytree'] += taxonomy_manager_build_tree_form($index = 0, $tree);
   
-  $form['taxonomytree'] += taxonomy_manager_build_tree_form(taxonomy_get_tree($vid));
-  
-  $form['delete'] = array( 
-    '#type' => 'submit', 
-    '#value' => t('Delete selected'), 
+  $form['toolbar'] = array( 
+    '#type' => 'fieldset', 
+    '#title' => t('Toolbar'),
+    '#weight' => -10, 
   );
   
-  $form['update_weight'] = array( 
-    '#type' => 'submit', 
+  $form['toolbar']['delete-confirm'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Delete selected'),
+    '#theme' => 'no_submit_button', 
+  );
+  
+  $form['toolbar']['update_weight'] = array( 
+    '#type' => 'submit',
     '#value' => t('Update weight'), 
   );
   
+  $form['toolbar']['add_show'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Add terms'),
+    '#theme' => 'no_submit_button',  
+  );
+  
+  $form['toolbar']['merge-show'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Merge selected into...'), 
+    '#theme' => 'no_submit_button', 
+  );
+  
+  $form['toolbar']['move_show'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Move selected to...'),
+    '#theme' => 'no_submit_button', 
+  );
+  
+  $form += _taxonomy_manager_add_form();
+  
+  $form += _taxonomy_manager_merge_form($voc);
+  
+  $form += _taxonomy_manager_move_form($voc);
+  
+  $form += _taxonomy_manager_confirm_delete($vid);
+  
+  return $form;
+}
+
+function _taxonomy_manager_confirm_delete($vid) {
+  drupal_add_js(array('hideForm' => array(
+    'show_button' => 'edit-delete-confirm', 
+    'hide_button' => 'edit-delete-cancel', 
+    'div' => 'del-confirm-form')), 'setting');
+  
+  $text = t('Confirmation required! Remember all term specific data will be lost!');
+  
+  $form = array();
+  
+  $form['delete'] = array(
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('Confirmation'),
+    '#prefix' => '<div id="del-confirm-form">',
+    '#suffix' => '</div>',
+  );
+  
+  $form['delete']['text'] = array( 
+    '#value' => "<b>". $text ."</b>", 
+  );
+  
+  $options = array( 
+    'delete_orphans' => t('Delete orphans'), 
+  );
+   
+  $form['delete']['options'] = array( 
+    '#type' => 'checkboxes', 
+    '#title' => t('Options'), 
+    '#options' => $options, 
+  );
+  
+  $form['delete']['delete'] = array( 
+    '#type' => 'submit', 
+    '#value' => t('Delete'), 
+  );
+  
+  $form['delete']['cancel'] = array(
+    '#type' => 'button', 
+    '#value' => t('Cancel'), 
+    '#theme' => 'no_submit_button',  
+  );
+  
+  return $form;
+  
+}
+
+function _taxonomy_manager_add_form() {
+  drupal_add_js(array('hideForm' => array(
+    'show_button' => 'edit-add-show', 
+    'hide_button' => 'edit-add-cancel', 
+    'div' => 'add-form')), 'setting');
+  
+  $form = array();
   $form['add'] = array( 
     '#type' => 'fieldset', 
     '#tree' => TRUE,
     '#title' => t('Add new terms'),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-    '#prefix' => '<div id="add_terms">',
+    '#prefix' => '<div id="add-form">',
     '#suffix' => '</div>',
     '#description' => t('Depending on the hierarchy settings, you can set parents (one ore more).
-                         Selected terms above will get the parents of the new inserted'), 
+                         Selected terms will get the parents of the new inserted'), 
   );
   
   for ($i=0; $i<5; $i++) {
     $form['add']['term'][$i] = array( 
       '#type' => 'textfield', 
     );
+   /* $form['add']['term']['children'][$i] = array( 
+      '#type' => 'button', 
+      '#value' => t('Add Children'), 
+      '#theme' => 'no_submit_button', 
+      '#suffix' => '</span>',
+    );*/
   }
   $form['add']['add'] = array( 
     '#type' => 'submit', 
     '#value' => t('Add terms'), 
+  );
+  
+  $form['add']['cancel'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Cancel'),
+    '#theme' => 'no_submit_button',  
+  );
+
+  return $form;
+  
+}
+
+function _taxonomy_manager_merge_form($voc) {
+  drupal_add_js(array('hideForm' => array(
+    'show_button' => 'edit-merge-show', 
+    'hide_button' => 'edit-merge-cancel', 
+    'div' => 'merge-form')), 'setting');
+  
+  $form = array();
+  
+  $form['merge'] = array( 
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('Merging of terms'), 
+    '#prefix' => '<div id="merge-form">',
+    '#suffix' => '</div>', 
+  );
+  
+  $help = t("You can choose either an exisiting term or either typ in a new
+    term, which will be created automatically, as main term (selected terms
+    get merged into this term)");
+  
+  $form['merge']['main_term'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Main term'),
+    '#description' => $help,
+    '#required' => FALSE,
+    '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
+  );
+  
+  $options = array();
+  
+  switch($voc->hierarchy ) { 
+    case 2:
+      $options['collect_parents'] = t('Collect all parents of merging terms an add it to main term');
+      
+    case 1:
+      $options['collect_children'] = t('Collect all children of merging terms an add it to main term');
+    break;
+  }
+  
+  if ($voc->relations) {
+    $options['collect_relations'] = t('Collect all relations of merging terms and add it to main term');
+  }
+  
+  if (count($options) > 0) {
+    $form['merge']['options'] = array( 
+      '#type' => 'checkboxes', 
+      '#title' => t('Options'), 
+      '#options' => $options, 
+    );
+  }
+   
+  $form['merge']['submit'] = array( 
+    '#type' => 'submit', 
+    '#value' => t('Merge'), 
+  );
+   
+  $form['merge']['cancel'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Cancel'), 
+    '#theme' => 'no_submit_button', 
+  );
+  
+  return $form;
+}
+
+function _taxonomy_manager_move_form($voc) {
+  drupal_add_js(array('hideForm' => array(
+    'show_button' => 'edit-move-show', 
+    'hide_button' => 'edit-move-cancel',
+    'div' => 'move-form')), 'setting');
+  
+  $form = array();
+  
+  $form['move'] = array( 
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('Moving of terms'),
+    '#prefix' => '<div id="move-form">',
+    '#suffix' => '</div>',
+  );
+  
+  $help = t("You can choose either an exisiting term or either typ in a new
+    term, which will be created automatically, as parent term (selected terms
+    get children of this term). If multiple parents are allowed, you can seperate
+    more terms in the autocomplete form with ','.
+    If selected terms should have no parent, leave it blank!");
+  
+  $form['move']['parents'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Parent term(s)'),
+    '#description' => $help,
+    '#required' => FALSE,
+    '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
+  );
+  
+  $options = array();
+  
+  if ($voc->hierarchy == 2) {
+    $options['keep_old_parents'] = t('Don\'t delete old parents, only add new parents (multiple parents)');
+  }
+  
+  if (count($options) > 0) {
+    $form['move']['options'] = array( 
+      '#type' => 'checkboxes', 
+      '#title' => t('Options'), 
+      '#options' => $options, 
+    );
+  }
+  
+  $form['move']['submit'] = array( 
+    '#type' => 'submit', 
+    '#value' => t('Move'),
+    '#attributes' => array('id' => 'move-button'), 
+  );
+   
+  $form['move']['cancel'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Cancel'),
+    '#theme' => 'no_submit_button',  
   );
   
   return $form;
@@ -115,23 +341,15 @@ function taxonomy_manager_form($vid) {
 /**
  * submits the taxonomy manager form
  */
-function taxonomy_manager_form_submit($form_id, $form_values) {  
+function taxonomy_manager_form_submit($form_id, $form_values) { 
   $tids = array(); 
-  $weights = array();
   
-  foreach ($form_values['taxonomytree'] as $tid => $forms) {
-    if ($forms['checkbox']) {
-      $tids[] = $tid;
-    }
-    if ($forms['weight'] != $forms['weight_old']) {
-      $weights[$tid] = $forms['weight'];
-    }
-  }
+  $tids = taxonomy_manager_get_selected_tids($form_values['taxonomytree']);
   
   switch($form_values['op']) {
-    case t('Delete selected'):
+    case t('Delete'):
       if (count($tids) > 0) {
-        taxonomy_manager_delete_terms($tids);
+        taxonomy_manager_delete_terms($tids, $form_values['delete']['options']);
         drupal_set_message("Selected terms deleted"); 
       }
       else {
@@ -139,7 +357,9 @@ function taxonomy_manager_form_submit($form_id, $form_values) {
       }
       break;
     
-    case t('Update weight'):       
+    case t('Update weight'):
+      $weights = array();
+      $weights = taxonomy_manager_get_updated_weights($form_values['taxonomytree']);       
       if (count($weights) > 0) {
         taxonomy_manager_update_weight($weights);
         drupal_set_message("Weights updated");
@@ -162,11 +382,57 @@ function taxonomy_manager_form_submit($form_id, $form_values) {
       drupal_set_message("Terms added");
       break;
       
+    case t('Merge'):   
+      $main_terms = taxonomy_manager_autocomplete_tags_get_tids($form_values['merge']['main_term'], $form_values['vid']);
+      $main_term = $main_terms[0];
+      taxonomy_manager_merge($main_term, $tids, $form_values['merge']['options']);
+      
+      drupal_set_message("Terms merged");
+      break;
+    
+    case t('Move'): 
+      $parents = taxonomy_manager_autocomplete_tags_get_tids($form_values['move']['parents'], $form_values['vid']);
+      if (count($parents) == 0) $parents[0] = 0; //if empty, delete all parents
+      taxonomy_manager_move($parents, $tids, $form_values['move']['options']);
+      
+      drupal_set_message("Terms moved");
+      break;
+      
   }
   
   drupal_goto('admin/content/taxonomy_manager/'. $form_values['vid']);
 }
 
+
+function taxonomy_manager_get_selected_tids($form_values) {
+  $tids = array();
+  if (is_array($form_values)) {
+    foreach ($form_values as $tid => $form_value) {
+      if ($form_value['checkbox']) {
+        $tids[$tid] = $tid;
+      }
+      if (is_array($form_value['children'])) {
+        $tids += taxonomy_manager_get_selected_tids($form_value['children']);
+      }
+    }
+  }
+  return $tids;
+}
+
+function taxonomy_manager_get_updated_weights($form_values) {
+  $weights = array();
+  if (is_array($form_values)) {
+    foreach ($form_values as $tid => $form_value) {
+      if ($form_value['weight'] != $form_value['weight_old']) {
+        $weights[$tid] = $form_value['weight'];
+      }
+      if (is_array($form_value['children'])) {
+        $weights += taxonomy_manager_get_updated_weights($form_value['children']);
+      }
+    }
+  }
+  return $weights;
+}
 
 /**
  * recursive theme function to create a list of terms
@@ -174,28 +440,24 @@ function taxonomy_manager_form_submit($form_id, $form_values) {
  * @param $element current element (part of form array) in recursion
  * @param $form whole form tree
  */
-function theme_taxonomy_manager_elements($element, $form = array()) {
-  if (count($form) == 0) $form = $element;
+function theme_taxonomy_manager_elements($element) {
   $output .= "<ul>";
   
   if (is_array($element)) {  
-    foreach (element_children($element['terms']) as $tid) {
+    foreach (element_children($element) as $tid) {
       if (is_numeric($tid)) {
-        $output .= '<li>';
+        $output .= '<li'. drupal_attributes($element[$tid]['#attributes']) .'>';
         $output .='<div class="term-line">';
-        $output .='<div class="term-checkbox">';
-        $output .= drupal_render($form[$tid]['checkbox']);
-        $output .= '</div>';
-        $output .= '<div class="term-value">';
-        $output .= drupal_render($element['terms'][$tid]['term_value']);
+        $output .='<div class="term-item">';
+        $output .= drupal_render($element[$tid]['checkbox']);
         $output .= '</div>';
         $output .= '<div class="term-weight">';
-        $output .= drupal_render($form[$tid]['weight']);
+        $output .= drupal_render($element[$tid]['weight']);
         $output .= '</div>';
         $output .= '<div class="clear"> </div></div>';
         
-        if (is_array($element['terms'][$tid]['#children'])) {
-          $output .= theme('taxonomy_manager_elements', $element['terms'][$tid]['#children'], $form);
+        if (is_array($element[$tid]['children'])) {
+          $output .= theme('taxonomy_manager_elements', $element[$tid]['children']);
         }
         
         $output .='</li>';
@@ -208,24 +470,6 @@ function theme_taxonomy_manager_elements($element, $form = array()) {
   return $output;
 }
 
-/**
- * builds a form elements (checkbox, weight an term name value) for a taxonomy tree
- *
- * @param $tree Array of terms (generated by taxonomy_get_tree($vid)
- * @return form array
- */
-function taxonomy_manager_build_tree_form($tree) {
-  $form = array();
-  foreach ($tree as $term) {
-    $form[$term->tid]['checkbox'] = array('#type' => 'checkbox');
-    $form[$term->tid]['weight'] = array('#type' => 'weight', '#default_value' => array($term->weight));
-    //store old values in form array, so that only changed weight values (new != old) are updated
-    $form[$term->tid]['weight_old'] = array('#type' => 'value', '#value' => $term->weight);
-    
-  }
-  $form += taxonomy_manager_build_tree_form_rec($index = 0, $tree);
-  return $form;
-}
 
 /**
  * 
@@ -234,28 +478,64 @@ function taxonomy_manager_build_tree_form($tree) {
  * @param unknown_type $tree
  * @return unknown
  */
-function taxonomy_manager_build_tree_form_rec(&$index, $tree) {
+function taxonomy_manager_build_tree_form(&$index, $tree) {
   $form = array();
   $current_depth = $tree[$index]->depth;
   while($index < count($tree) && $tree[$index]->depth >= $current_depth) {
     $term = $tree[$index];
-    $form['terms'][$term->tid]['term_value'] = array('#value' => $term->name);
+    $form[$term->tid]['checkbox'] = array('#type' => 'checkbox', '#title' => $term->name);
+    $form[$term->tid]['weight'] = array('#type' => 'weight', '#default_value' => array($term->weight));
+    //store old values in form array, so that only changed weight values (new != old) are updated
+    $form[$term->tid]['weight_old'] = array('#type' => 'value', '#value' => $term->weight);
+    
     $index++;
     
     if ($tree[$index]->depth > $current_depth) {
-      $form['terms'][$term->tid]['#children'] = taxonomy_manager_build_tree_form_rec($index, $tree);
+      $form[$term->tid]['children'] = taxonomy_manager_build_tree_form($index, $tree);
     }
   }
   return $form;
 }
 
-
-
-
-function taxonomy_manager_delete_terms($tids) {
+/**
+ * difference to taxonomy_del_term: doesn't delete children
+ *
+ * @param unknown_type $tids
+ */
+function taxonomy_manager_delete_terms($tids, $options = array()) {
   if (!is_array($tids)) array($tids);
-  foreach ($tids as $tid) {
-    taxonomy_del_term($tid);
+  while (count($tids) > 0) {
+    $orphans = array();
+    foreach ($tids as $tid) {      
+      if ($children = taxonomy_get_children($tid)) {
+        foreach ($children as $child) {
+          $parents = taxonomy_get_parents($child->tid);
+          if ($options['delete_orphans']) {
+            if (count($parents) == 1) {
+              $orphans[] = $child->tid;
+            }
+          }
+          else {
+            if (count($parents) == 1) {
+              db_query("UPDATE {term_hierarchy} SET parent = 0 WHERE tid = %d AND parent = %d", $child->tid, $tid);
+            }
+            else {
+              db_query("DELETE FROM {term_hierarchy} WHERE tid = %d AND parent = %d", $child->tid, $tid);
+            }
+          }
+        }
+      }
+      
+      db_query('DELETE FROM {term_data} WHERE tid = %d', $tid);
+      db_query('DELETE FROM {term_hierarchy} WHERE tid = %d', $tid);
+      db_query('DELETE FROM {term_relation} WHERE tid1 = %d OR tid2 = %d', $tid, $tid);
+      db_query('DELETE FROM {term_synonym} WHERE tid = %d', $tid);
+      db_query('DELETE FROM {term_node} WHERE tid = %d', $tid);
+    
+      $term = (array) taxonomy_get_term($tid);
+      module_invoke_all('taxonomy', 'delete', 'term', $term);
+      $tids = $orphans;
+    }
   } 
 }
 
@@ -265,5 +545,88 @@ function taxonomy_manager_update_weight($weights) {
   }
 }
 
+function taxonomy_manager_move($parents, $children, $options = array()) {
+  if (!is_array($parents)) array($parents);
+  
+  foreach ($children as $child) {
+    if (!$options['keep_old_parents']) {
+      db_query("DELETE FROM {term_hierarchy} WHERE tid = %d", $child);
+    }
+    foreach ($parents as $parent) {
+      db_query("INSERT INTO {term_hierarchy} SET parent = %d, tid = %d", $parent, $child, $child);
+    }
+  }
+}
 
-?>
+function taxonomy_manager_merge($main_term, $merging_terms, $options = array()) {
+  foreach ($merging_terms as $merge_term) {
+    db_query("UPDATE {term_node} SET tid = %d WHERE tid = %d", $main_term, $merge_term);
+    
+    if ($options['collect_parents']) {
+      db_query("UPDATE {term_hierarchy} SET tid = %d WHERE tid = %d", $main_term, $merge_term);
+    }
+    
+    if ($options['collect_children']) {
+      db_query("UPDATE {term_hierarchy} SET parent = %d WHERE parent = %d", $main_term, $merge_term);
+    }
+    
+    if ($options['collect_relations']) {
+      db_query("UPDATE {term_relations} SET tid1 = %d WHERE tid1 = %d", $main_term, $merge_term);      
+      db_query("UPDATE {term_relations} SET tid2 = %d WHERE tid2 = %d", $main_term, $merge_term);          
+    }
+    
+    //save merged term as synonym
+    $term = taxonomy_get_term($merge_term);
+    db_query("INSERT INTO {term_synonym} (tid, name) VALUES (%d, '%s')", $main_term, $term->name);
+    
+    taxonomy_manager_delete_terms(array($merge_term));
+  }
+}
+
+
+
+function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid) {
+  $tids = array();
+  
+  $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+  preg_match_all($regexp, $typed_input, $matches);
+  $typed_terms = array_unique($matches[1]);
+
+  foreach ($typed_terms as $typed_term) {
+    $typed_term = str_replace('""', '"', preg_replace('/^"(.*)"$/', '\1', $typed_term));
+    $typed_term = trim($typed_term);
+    if ($typed_term == "") { continue; }
+
+    $possibilities = taxonomy_get_term_by_name($typed_term);
+    $typed_term_tid = NULL; // tid match if any.
+    foreach ($possibilities as $possibility) {
+      if ($possibility->vid == $vid) {
+        $typed_term_tid = $possibility->tid;
+        $tids[] = $typed_term_tid;
+      }
+    }
+
+    if (!$typed_term_tid) {
+      $edit = array('vid' => $vid, 'name' => $typed_term);
+      $status = taxonomy_save_term($edit);
+      $typed_term_tid = $edit['tid'];
+      $tids[] = $typed_term_tid;
+    }
+  }
+  return $tids;
+}
+
+/**
+ * themes a real button form type
+ */
+function theme_no_submit_button($element) {
+  // Make sure not to overwrite classes.
+  if (isset($element['#attributes']['class'])) {
+    $element['#attributes']['class'] = 'form-'. $element['#button_type'] .' '. $element['#attributes']['class'];
+  }
+  else {
+    $element['#attributes']['class'] = 'form-'. $element['#button_type'];
+  }
+
+  return '<input type="button" '. (empty($element['#name']) ? '' : 'name="'. $element['#name'] .'" ')  .'id="'. $element['#id'].'" value="'. check_plain($element['#value']) .'" '. drupal_attributes($element['#attributes']) ." />\n";
+}
