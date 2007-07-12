@@ -1,18 +1,25 @@
 // $Id$
- /**
- * @author Matthias
- */
 
 
 if (Drupal.jsEnabled) {
-  $(document).ready(function() {	  
-    Drupal.attachTreeview();
+  $(document).ready(function() {
+    var settings = Drupal.settings.taxonomytree || [];
+    if (settings['id']) {
+      if (!(settings['id'] instanceof Array)) {
+        Drupal.attachTreeview(settings['id']);
+      }
+      else {
+        for (var i=0; i<settings['id'].length; i++) {
+          Drupal.attachTreeview(settings['id'][i]);
+        }
+      }
+    }
   });
   
 }
 
-Drupal.attachTreeview = function() {
-  $("#taxonomytree").find("ul")
+Drupal.attachTreeview = function(id) {
+  $("#"+ id).find("ul")
     .addClass("treeview")
     .find("li:last-child").addClass("last").end()
     .find("li[ul]:last-child").removeClass("last").addClass("lastExpandable").end()	  
@@ -31,7 +38,6 @@ Drupal.toggleTree = function(node) {
   $(node).parent().find("ul:first").toggle();
   Drupal.swapClasses(node.parentNode, "expandable", "collapsable");
   Drupal.swapClasses(node.parentNode, "lastExpandable", "lastCollapsable");
-  //$(node).siblings().find("li[ul]").find("ul").hide();
 }
 
 Drupal.swapClasses = function(node, c1, c2) {
