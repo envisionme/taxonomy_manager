@@ -6,11 +6,13 @@ if (Drupal.jsEnabled) {
     var settings = Drupal.settings.taxonomytree || [];
     if (settings['id']) {
       if (!(settings['id'] instanceof Array)) {
-        Drupal.attachTreeview(settings['id']);
+        var ul = $('#'+ settings['id']).find("ul");
+        Drupal.attachTreeview(ul);
       }
       else {
         for (var i=0; i<settings['id'].length; i++) {
-          Drupal.attachTreeview(settings['id'][i]);
+          var ul = $('#'+ settings['id'][i]).find("ul");
+          Drupal.attachTreeview(ul);
         }
       }
     }
@@ -18,12 +20,14 @@ if (Drupal.jsEnabled) {
   
 }
 
-Drupal.attachTreeview = function(id) {
-  $("#"+ id).find("ul")
+Drupal.attachTreeview = function(ul) {
+  $(ul)
     .addClass("treeview")
     .find("li:last-child").addClass("last").end()
     .find("li[ul]:last-child").removeClass("last").addClass("lastExpandable").end()	  
-    .find("li[ul]").prepend("<div class='hitArea'/>").addClass("expandable").find("ul").hide().end()
+    .find("li[ul]").prepend("<div class='hitArea'/>").addClass("expandable").end()
+    .find("li.lastExpandable").removeClass("expandable").end()
+    .find("li[ul]").find("ul").hide().end()
     .find("div.hitArea").toggle(
       function() {
         Drupal.toggleTree(this);
