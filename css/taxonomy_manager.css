@@ -54,13 +54,22 @@
   float: left;
 }
 
-.term-weight {
+.term-has-more-siblings {
   float: right;
-  width: 20px;
-  margin-right: 40px;
+  height: 38px;
 }
 
-.term-arrows {
+.term-next-count {
+  float: left;
+  padding-top: 10px;
+  color: #4ca108;
+}
+
+.term-downarrow-img {
+  float: left;
+}
+
+.term-operations {
   float: left;
 }
 
