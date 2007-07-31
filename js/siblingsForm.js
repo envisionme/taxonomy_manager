@@ -29,7 +29,8 @@ Drupal.attachSiblingsForm = function(ul) {
       $(li).after(data);
       Drupal.attachTreeviewToSiblings($('li', li.parentNode), currentIndex);
       Drupal.attachChildFormToSiblings($('li', li.parentNode), currentIndex);
-      Drupal.attachUpdateWeightTerms($('li', li.parentNode), currentIndex)
+      Drupal.attachUpdateWeightTerms($('li', li.parentNode), currentIndex);
+      Drupal.attachTermDataToSiblings($('li', li.parentNode), currentIndex);
       
       $(li).removeClass("last").removeClass("has-more-siblings");
       Drupal.swapClasses(li, "lastExpandable", "expandable");

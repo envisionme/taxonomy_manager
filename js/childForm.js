@@ -37,6 +37,7 @@ Drupal.loadChildForm = function(li) {
       Drupal.attachSiblingsForm();
       Drupal.attachUpdateWeightTerms(li);
       Drupal.attachChildForm(li);
+      Drupal.attachTermData($(li).find("ul"))
       $(li).removeClass("has-children");
     });     
   }
