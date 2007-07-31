@@ -123,8 +123,9 @@ function taxonomy_manager_form($vid, $tid=0) {
     return $form;
   }
 
+  $form['taxonomy']['#tree'] = TRUE;
   
-  $form['taxonomy'] = array( 
+  $form['taxonomy']['manager'] = array( 
     '#type' => 'fieldset',
     '#title' => $voc->name,
     '#weight' => 10,
@@ -133,7 +134,7 @@ function taxonomy_manager_form($vid, $tid=0) {
     '#suffix' => '</div>',
   );
   
-  $form['taxonomy']['tree'] = array( 
+  $form['taxonomy']['manager']['tree'] = array( 
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
     '#pager' => TRUE, 
@@ -531,7 +532,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $type) {
  */
 function taxonomy_manager_form_validate($form_id, $form_values) {
   $selected_tids = array();
-  $selected_tids = $form_values['taxonomy']['tree']['selected_terms'];
+  $selected_tids = $form_values['taxonomy']['manager']['tree']['selected_terms'];
   
   switch ($form_values['op']) {
     case t('Delete'): 
@@ -581,7 +582,7 @@ function taxonomy_manager_form_validate($form_id, $form_values) {
  */
 function taxonomy_manager_form_submit($form_id, $form_values) {  
   $selected_tids = array(); 
-  $selected_tids = $form_values['taxonomy']['tree']['selected_terms'];
+  $selected_tids = $form_values['taxonomy']['manager']['tree']['selected_terms'];
 
   switch ($form_values['op']) {
     case t('Delete'):
