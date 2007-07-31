@@ -1,9 +1,14 @@
 
 
+#taxonomy-manager {
+  width: 100%;
+}
+
 #taxonomytree {
+  float: left;
   height: 500px;	
   overflow: auto;
-  width: 350px;
+  width: 300px;
   margin: 0;
   padding: 0;
 }
@@ -11,6 +16,44 @@
 #taxonomytree fieldset {
   margin: 0;
   padding: 5px;
+}
+
+#taxonomy-term-data {
+  float: left;
+  margin-left: -300px;
+  width: 100%;
+}
+
+#taxonomy-term-data-fieldset {
+  margin: 0;
+  padding: 10px;
+  margin-left: 320px;
+}
+
+#taxonomy-term-data-fieldset .form-item {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.taxonomy-term-data-table {
+  width: 375px;
+  margin: 1em 0 0 0;
+}
+
+.taxonomy-term-data-name {
+  width: 250px;
+}
+
+.taxonomy-term-data-operations {
+  width: 20px;
+}
+
+.taxonomy-term-data-table td {
+  margin: 0;
+  padding: 0px 0px 0px 10px;
+}
+.taxonomy-term-data-table th {
+  padding: 0;
 }
 
 .treeview, .treeview ul{
@@ -93,6 +136,16 @@
 
 #taxonomy-toolbar-images{
   float: left;
+}
+
+.term-data-autocomplete {
+  float: left;
+}
+.term-data-autocomplete-add {
+  float: left; 
+  margin-bottom:0.5em;
+  margin-top:0.5em;
+  padding-left:1em;
 }
 
 .treeview li { background: url(../images/tv-item.gif) 0 0 no-repeat; }
