@@ -148,6 +148,26 @@
   padding-left:1em;
 }
 
+#term-data-name-save {
+  padding-top: 25px;
+  padding-left: 10px;
+  float: left;
+}
+
+#term-data-name-field {
+  float: left;
+}
+
+#term-data-description-save {
+  padding-top: 85px;
+  padding-left: 10px;
+  float: left;
+}
+
+#term-data-description-field {
+  float: left;
+}
+
 .treeview li { background: url(../images/tv-item.gif) 0 0 no-repeat; }
 .treeview .collapsable { background-image: url(../images/tv-collapsable.gif); }
 .treeview .expandable { background-image: url(../images/tv-expandable.gif); }
