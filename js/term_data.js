@@ -20,8 +20,9 @@ if (Drupal.jsEnabled) {
 
 Drupal.attachTermData = function(ul) {
   $('a.term-data-link').click(function() {
-    var tid = Drupal.getTermId($(this).parents("li"));
-    Drupal.termDataLoad(this.href, tid);
+    var li = $(this).parents("li");
+    var tid = Drupal.getTermId(li);
+    Drupal.termDataLoad(this.href, tid, li);
     return false;
   });
 }
@@ -29,23 +30,24 @@ Drupal.attachTermData = function(ul) {
 Drupal.attachTermDataToSiblings = function(all, currentIndex) {
   var nextSiblings = all.gt(currentIndex);
   $(nextSiblings).find('a.term-data-link').click(function() {
-    var tid = Drupal.getTermId($(this).parents("li"));
-    Drupal.termDataLoad(this.href, tid);
+    var li = $(this).parents("li");
+    var tid = Drupal.getTermId(li);
+    Drupal.termDataLoad(this.href, tid, li);
     return false;
   });
 }
 
-Drupal.termDataLoad = function(href, tid) {
+Drupal.termDataLoad = function(href, tid, li) {
   var url = href +'/true';
-  $.post(url, null, function(data) {
+  $.get(url, null, function(data) {
     var div = $('#taxonomy-term-data');
     $(div).html(data);
     Drupal.autocompleteAutoAttach();
-    Drupal.termDataForm(tid, div, href);
+    Drupal.termDataForm(tid, div, href, li);
   });
 }
 
-Drupal.termDataForm = function(tid, div, href) {
+Drupal.termDataForm = function(tid, div, href, li) {
   var param = new Object();
   param['tid'] = tid;
   
@@ -55,6 +57,8 @@ Drupal.termDataForm = function(tid, div, href) {
     param['op'] = 'add';
     Drupal.termDataSend(param);
     Drupal.termDataLoad(href, tid);
+    Drupal.updateTree(li, tid, param);
+
   });
   
   $('.taxonomy-term-data-operations').click(function() {
@@ -64,6 +68,7 @@ Drupal.termDataForm = function(tid, div, href) {
     param['op'] = 'delete';
     $(this).parent().remove();
     Drupal.termDataSend(param);
+    Drupal.updateTree(li, tid, param);
   });
   
   $('#term-data-name-save').click(function() {
@@ -81,13 +86,46 @@ Drupal.termDataForm = function(tid, div, href) {
     Drupal.termDataSend(param);
   });
   
+  $('#edit-term-data-weight').change(function() {
+    param['value'] = this.value;
+    param['attr_type'] = 'weight';
+    param['op'] = 'update';
+    Drupal.termDataSend(param);
+    
+    Drupal.reloadTree(li, tid, param);
+    
+    
 
+  });
 }
 
 Drupal.termDataSend = function(param) {
   var url= Drupal.settings.termData['url'];
   if (param['value'] != '' && param['attr_type'] != '') {
-    $.post(url, param);
+    //synchronous to ensure consistent data
+    $.ajax({
+      async: false,
+      data: param, 
+      type: "POST", 
+      url: url
+    });
+  }
+}
+
+Drupal.reloadTree = function (li, tid, param) {;
+  if (param['attr_type'] == 'parent' || (param['attr_type'] == 'child' && param['op'] == 'add')) {
+    Drupal.loadRootForm();
+  }
+  else if (param['attr_type'] == 'child' || param['attr_type'] == 'weight') {
+    var parentLi = $(li).parents("li");
+    try {
+      parentLi.attr("id");
+      Drupal.loadChildForm(parentLi, true);
+    } catch (e) {
+      //no parent li --> root level terms
+      //load whole Tree
+      Drupal.loadRootForm();
+    }
   }
 }
 

@@ -105,6 +105,10 @@ Drupal.getTreeId = function() {
   return Drupal.settings.taxonomytree['id']; 
 }
 
+Drupal.getVocId = function() {
+  return Drupal.settings.taxonomytree['vid']; 
+}
+
 Drupal.attachThrobber = function(tree) {
   $('<div><img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25"></div>').hide()
     .ajaxStart(function(){

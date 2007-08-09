@@ -6,7 +6,7 @@
 
 #taxonomytree {
   float: left;
-  height: 500px;	
+  height: 550px;	
   overflow: auto;
   width: 300px;
   margin: 0;
@@ -18,16 +18,37 @@
   padding: 5px;
 }
 
+#edit-search-button {
+  margin-top: 15px;
+  margin-left: 10px;
+  float: left;
+}
+
+#edit-find-field {
+  float: left;
+}
+
+#edit-find-field .form-item {
+  padding: 0;
+  margin: 0;
+}
+
 #taxonomy-term-data {
   float: left;
-  margin-left: -300px;
-  width: 100%;
+  /*width: 380px;*/
+  /*margin-left: -300px;*/
+  /*width: 100%;*/
+  margin-left: 20px;
+}
+
+#taxonomy-toolbar-fieldset {
+  margin-top: 0;
 }
 
 #taxonomy-term-data-fieldset {
   margin: 0;
   padding: 10px;
-  margin-left: 320px;
+  /*margin-left: 320px;*/
 }
 
 #taxonomy-term-data-fieldset .form-item {
@@ -89,7 +110,6 @@
 }
 
 .term-item {
- /* width: 20px;*/
   float: left;
 }
 
@@ -128,6 +148,7 @@
 
 #taxonomy-toolbar{
   height: 33px;
+  float:left;
 }
 
 #taxonomy-toolbar-buttons{
@@ -174,3 +195,47 @@
 .treeview .last { background-image: url(../images/tv-item-last.gif); }
 .treeview .lastCollapsable { background-image: url(../images/tv-collapsable-last.gif); }
 .treeview .lastExpandable { background-image: url(../images/tv-expandable-last.gif); }
+
+
+input.add {
+  background-image: url(../images/list-add.png);
+}
+
+input#edit-weight-up {
+  background-image: url(../images/go-up.png);
+}
+
+input#edit-weight-down {
+  background-image: url(../images/go-down.png);
+}
+
+input.delete {
+  background-image: url(../images/list-remove.png);
+}
+
+input.move {
+  background-image: url(../images/move.png);
+}
+
+input.merge {
+  background-image: url(../images/merge.png);
+}
+
+input.cancel {
+  background-image: url(../images/dialog-cancel.png);
+}
+
+input.search {
+  background-image: url(../images/edit-find.png);
+}
+
+input.taxonomy-manager-buttons {
+  border: thin solid;
+  border-color: #cccccc #555555 #555555 #cccccc;
+  background-color: #f2f2f2;
+  background-repeat: no-repeat;
+  background-position:3px;
+  padding-left: 25px;
+  padding-bottom: 3px;
+  height: 28px;
+}

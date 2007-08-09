@@ -112,7 +112,7 @@ function taxonomy_manager_form($vid, $tid=0) {
   drupal_add_js($module_path .'js/term_data.js');
   
   drupal_add_js(array('termData' => array('url' => url('admin/content/taxonomy_manager/termdata/edit/'. $vid))), 'setting');
-  drupal_add_js(array('updateWeight' => array('up' => 'go-up', 'down' => 'go-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid))), 'setting');
+  drupal_add_js(array('updateWeight' => array('up' => 'edit-weight-up', 'down' => 'edit-weight-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid))), 'setting');
   
   $form = array();
   
@@ -153,53 +153,96 @@ function taxonomy_manager_form($vid, $tid=0) {
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
     '#pager' => TRUE, 
-   );
-
+  );
+   
+  /*$form['search'] = array(  
+    '#type' => 'fieldset', 
+    '#title' => t('Search'), 
+    '#collapsible' => TRUE, 
+    '#collapsed' => TRUE,
+    '#tree' => TRUE, 
+  );
+  
+  $form['search']['field'] = array( 
+    '#type' => 'textfield', 
+    '#title' => t('Search String'), 
+    '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
+    '#prefix' => '<div id="edit-find-field">', 
+    '#suffix' => '</div>', 
+  );
+  
+  $form['search']['button'] = array( 
+    //'#value' => theme("image", $module_path ."images/edit-find.png", "go up", NULL, array('id' => 'edit-find')),
+    '#type' => 'submit', 
+    '#attributes' => array('class' => 'taxonomy-manager-buttons search'),
+    '#value' => t('Search'),
+    '#suffix' => '<div class="clear"></div>',
+  );*/
+ 
   $form['toolbar'] = array( 
     '#type' => 'fieldset', 
     '#title' => t('Toolbar'),
-    '#weight' => -10, 
+    '#attributes' => array('id' => 'taxonomy-toolbar-fieldset'),
   );
   
-  $form['toolbar']['up_link'] = array( 
-    '#type' => 'markup', 
-    '#value' => theme("image", $module_path ."images/go-up.png", "go up", NULL, array('id' => 'go-up')),
-    '#prefix' => '<div id="taxonomy-toolbar"><div id="taxonomy-toolbar-images">',
+  $form['toolbar']['weight_up'] = array( 
+    '#type' => 'button',
+    '#attributes' => array('class' => 'taxonomy-manager-buttons'), 
+    //'#value' => theme("image", $module_path ."images/go-up.png", "go up", NULL, array('id' => 'go-up')),
+    '#value' => t('Up'),
+    '#theme' => 'no_submit_button',
+    '#prefix' => '<div id="taxonomy-toolbar">',
   );
   
-  $form['toolbar']['down_link'] = array( 
-    '#type' => 'markup', 
-    '#value' => theme("image", $module_path ."images/go-down.png", "go down", NULL, array('id' => 'go-down')),
+  $form['toolbar']['weight-down'] = array( 
+    '#type' => 'button', 
+    '#attributes' => array('class' => 'taxonomy-manager-buttons'),
+    '#value' => t('Down'),
+    '#theme' => 'no_submit_button',
+    //'#value' => theme("image", $module_path ."images/go-down.png", "go down", NULL, array('id' => 'go-down')),
   );
    
   $form['toolbar']['delete_confirm'] = array( 
-    '#type' => 'markup', 
-    '#value' => theme("image", $module_path ."images/list-remove.png", "remove", NULL, array('id' => 'delete-confirm')),
+    '#type' => 'button', 
+    '#attributes' => array('class' => 'taxonomy-manager-buttons delete'),
+    //'#value' => theme("image", $module_path ."images/list-remove.png", "remove", NULL, array('id' => 'delete-confirm')),
+    '#value' => t('Delete'),
+    '#theme' => 'no_submit_button',
+    //'#suffix' => '</div>',
+    
   );
 
-  $form['toolbar']['add_show'] = array( 
+  /*$form['toolbar']['add_show'] = array( 
     '#type' => 'markup', 
     '#value' => theme("image", $module_path ."images/list-add.png", "add", NULL, array('id' => 'add-show')),
     '#suffix' => '</div>',
-  );
-  
-  $form['toolbar']['merge_show'] = array( 
-    '#type' => 'button', 
-    '#value' => t('Merge selected into...'), 
-    '#theme' => 'no_submit_button', 
-    '#prefix' => '<div id="taxonomy-toolbar-buttons">'
+  );*/
+  $form['toolbar']['add_show'] = array( 
+    '#type' => 'button',
+    '#attributes' => array('class' => 'taxonomy-manager-buttons add'), 
+    '#value' => t('Add'), 
+    '#theme' => 'no_submit_button',
   );
   
   $form['toolbar']['move_show'] = array( 
     '#type' => 'button', 
-    '#value' => t('Move selected to...'),
+    '#value' => t('Move'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons move'),
+    '#theme' => 'no_submit_button', 
+  );
+  
+  $form['toolbar']['merge_show'] = array( 
+    '#type' => 'button', 
+    '#attributes' => array('class' => 'taxonomy-manager-buttons merge'),
+    '#value' => t('Merge'), 
     '#theme' => 'no_submit_button', 
     '#suffix' => '</div>'
+    //'#prefix' => '<div id="taxonomy-toolbar-buttons">'
   );
   
   $form['toolbar']['wrapper'] = array( 
     '#type' => 'markup', 
-    '#value' => '<div id="taxonomy-toolbar-throbber"></div></div><div class="clear"></div>', 
+    '#value' => '<div id="taxonomy-toolbar-throbber"></div><div class="clear"></div>', 
     '#weight' => 20,
   );
   
@@ -239,7 +282,7 @@ function taxonomy_manager_tree_link($vid) {
  */
 function taxonomy_manager_confirm_delete($voc) {
   drupal_add_js(array('hideForm' => array(
-    'show_button' => 'delete-confirm', 
+    'show_button' => 'edit-delete-confirm', 
     'hide_button' => 'edit-delete-cancel', 
     'div' => 'del-confirm-form')), 'setting');
   
@@ -273,11 +316,13 @@ function taxonomy_manager_confirm_delete($voc) {
   
   $form['delete']['delete'] = array( 
     '#type' => 'submit', 
-    '#value' => t('Delete'), 
+    '#value' => t('Delete'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons delete'), 
   );
   
   $form['delete']['cancel'] = array(
     '#type' => 'button', 
+    '#attributes' => array('class' => 'taxonomy-manager-buttons cancel'),
     '#value' => t('Cancel'), 
     '#theme' => 'no_submit_button',  
   );
@@ -291,7 +336,7 @@ function taxonomy_manager_confirm_delete($voc) {
 function taxonomy_manager_add_form($hide_form = TRUE) {
   if ($hide_form) {
     drupal_add_js(array('hideForm' => array(
-      'show_button' => 'add-show', 
+      'show_button' => 'edit-add-show', 
       'hide_button' => 'edit-add-cancel', 
       'div' => 'add-form')), 'setting');
   }
@@ -314,14 +359,16 @@ function taxonomy_manager_add_form($hide_form = TRUE) {
     );
   }
   $form['add']['add'] = array( 
-    '#type' => 'submit', 
+    '#type' => 'submit',
+    '#attributes' => array('class' => 'taxonomy-manager-buttons add'), 
     '#value' => t('Add'), 
   );
   
   $form['add']['cancel'] = array( 
     '#type' => 'button', 
     '#value' => t('Cancel'),
-    '#theme' => 'no_submit_button',  
+    '#theme' => 'no_submit_button',
+    '#attributes' => array('class' => 'taxonomy-manager-buttons cancel'),  
   );
 
   return $form;
@@ -386,12 +433,14 @@ function taxonomy_manager_merge_form($voc) {
    
   $form['merge']['submit'] = array( 
     '#type' => 'submit', 
-    '#value' => t('Merge'), 
+    '#value' => t('Merge'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons merge'), 
   );
    
   $form['merge']['cancel'] = array( 
     '#type' => 'button', 
-    '#value' => t('Cancel'), 
+    '#value' => t('Cancel'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons cancel'), 
     '#theme' => 'no_submit_button', 
   );
   
@@ -446,13 +495,15 @@ function taxonomy_manager_move_form($voc) {
   }
   
   $form['move']['submit'] = array( 
-    '#type' => 'submit', 
+    '#type' => 'submit',
+    '#attributes' => array('class' => 'taxonomy-manager-buttons move'), 
     '#value' => t('Move'),
   );
    
   $form['move']['cancel'] = array( 
     '#type' => 'button', 
     '#value' => t('Cancel'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons cancel'),
     '#theme' => 'no_submit_button',  
   );
   
@@ -521,20 +572,36 @@ function taxonomy_manager_form_term_data($tid) {
   $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_synonyms($term->tid), t('Synonyms'), 'synonym', FALSE); 
   $form['term_data']['synonyms']['#tree'] = TRUE;
   
-  $form['term_data']['relations'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_related($term->tid), t('Relations'), 'related'); 
-  $form['term_data']['relations']['#tree'] = TRUE;
+  if ($vocabulary->relations) {
+    $form['term_data']['relations'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_related($term->tid), t('Relations'), 'related'); 
+    $form['term_data']['relations']['#tree'] = TRUE;
+  }
   
-  $form['term_data']['parents'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_parents($term->tid), t('Parents'), 'parent'); 
-  $form['term_data']['parents']['#tree'] = TRUE;
+  if ($vocabulary->hierarchy) {
+    $parents = taxonomy_get_parents($term->tid);
+    $p_add = TRUE;
+    if ((count($parents) >= 1) && ($vocabulary->hierarchy == 1)) {
+      $p_add = FALSE;
+    }
+    $form['term_data']['parents'] = _taxonomy_manager_form_term_data_lists($term, $parents, t('Parents'), 'parent', TRUE, $p_add); 
+    $form['term_data']['parents']['#tree'] = TRUE;
+    
+    //$form['term_data']['children'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_children($term->tid), t('Children'), 'child', !($vocabulary->hierarchy == 1)); 
+    //$form['term_data']['children']['#tree'] = TRUE;
+  }
   
-  $form['term_data']['children'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_children($term->tid), t('Children'), 'child'); 
-  $form['term_data']['children']['#tree'] = TRUE;
-  
-
+  $form['term_data']['weight'] = array( 
+    '#type' => 'weight', 
+    '#default_value' => $term->weight, 
+    '#delta' => 40,
+    '#prefix' => '<div id="term-data-weight">', 
+    '#suffix' => '</div>', 
+    '#title' => t('Weight'), 
+  );
   return $form;
 }
 
-function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $attr, $autocomplete = TRUE) {
+function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $attr, $autocomplete = TRUE, $add = TRUE) {
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $rows = array();
   
@@ -554,7 +621,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       'id' => 'term-'. $id, 
     );
     $row[] = array(
-      'data' => theme("image", $module_path ."images/list-remove-small.png", "term-remove", NULL, array('class' => $attr)), 
+      'data' => theme("image", $module_path ."images/list-remove.png", "term-remove", NULL, array('class' => $attr)), 
       'class' => 'taxonomy-term-data-operations', 
     );
     $rows[] = $row;
@@ -566,26 +633,28 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
   $form['list'] = array( 
     '#value' => theme('table', $headers, $rows, array('class' => 'taxonomy-term-data-table')),
   );
-  $form['add'] = array( 
-    '#type' => 'textfield',
-    '#prefix' => '<div class="term-data-autocomplete-line"><div class="term-data-autocomplete">',
-    '#suffix' => '</div>',
-    '#size' => 45,
-  );
-  if ($autocomplete) {
-    $form['add']['#autocomplete_path'] = 'taxonomy/autocomplete/'. $term->vid;
-  }
+  if ($add) {
+    $form['add'] = array( 
+      '#type' => 'textfield',
+      '#prefix' => '<div class="term-data-autocomplete-line"><div class="term-data-autocomplete">',
+      '#suffix' => '</div>',
+      '#size' => 45,
+    );
+    if ($autocomplete) {
+      $form['add']['#autocomplete_path'] = 'taxonomy/autocomplete/'. $term->vid;
+    }
   
-  $form['add_button'] = array( 
-    '#value' => theme("image", $module_path ."images/list-add-small.png", "term-remove", NULL, array('class' => $attr)), 
-    /*'#theme' => 'taxonomy_manager_image_button', 
-    '#button_type' => 'image', 
-    '#value' => t('Add'),
-    '#attributes' => array('src' => $module_path ."images/list-add-small.png", 'alt' => t('Add')),
-    */
-    '#prefix' => '<div class="term-data-autocomplete-add">',
-    '#suffix' => '</div></div><div class="clear"></div>',
-  );
+    $form['add_button'] = array( 
+      '#value' => theme("image", $module_path ."images/list-add.png", "term-remove", NULL, array('class' => $attr)), 
+      /*'#theme' => 'taxonomy_manager_image_button', 
+      '#button_type' => 'image', 
+      '#value' => t('Add'),
+      '#attributes' => array('src' => $module_path ."images/list-add-small.png", 'alt' => t('Add')),
+      */
+      '#prefix' => '<div class="term-data-autocomplete-add">',
+      '#suffix' => '</div></div><div class="clear"></div>',
+    );
+  }
   
   return $form;
 
@@ -745,6 +814,7 @@ function taxonomy_manager_term_data_edit($vid) {
       foreach ($values as $value) { 
         db_query("DELETE FROM {term_hierarchy} WHERE parent = %d AND tid = %d", $tid, $value);
         if ($op == 'add') {
+          db_query("DELETE FORM {ŧerm_hiearachy} WHERE parent = 0 AND tid = %d", $value);
           db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (%d, %d)", $tid, $value);
         }
       }
@@ -771,9 +841,14 @@ function taxonomy_manager_term_data_edit($vid) {
         }
       }
       break;
+    
+    case 'weight': 
+      if (is_numeric($values)) {
+        db_query("UPDATE {term_data} SET weight = %d WHERE tid = %d", $values, $tid);
+      }
   }
   
-  //TODO: add values instead of empty array...
+  //TODO: pass values instead of empty array...
   module_invoke_all('taxonomy', 'update', 'term', array());
   
   //necessary?
@@ -863,7 +938,7 @@ function taxonomy_manager_move($parents, $children, $options = array()) {
       db_query("DELETE FROM {term_hierarchy} WHERE tid = %d", $child);
     }
     foreach ($parents as $parent) {
-      db_query("INSERT INTO {term_hierarchy} SET parent = %d, tid = %d", $parent, $child, $child);
+      db_query("INSERT INTO {term_hierarchy} SET parent = %d, tid = %d", $parent, $child);
     }
   }
 }
@@ -1114,6 +1189,7 @@ function taxonomy_manager_elements() {
 function taxonomy_manager_tree_process_elements($element) {
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $id = form_clean_id(implode('-', $element['#parents']));
+  $vid = $element['#vid'];
   
   if (!$element['#parent'] && !$element['#siblings_page']) {
     drupal_add_css($module_path .'css/taxonomy_manager.css');
@@ -1123,11 +1199,9 @@ function taxonomy_manager_tree_process_elements($element) {
     
     drupal_add_js(array('siblingsForm' => array('url' => url('admin/content/taxonomy_manager/siblingsform'), 'modulePath' => $module_path)), 'setting');
     drupal_add_js(array('childForm' => array('url' => url('admin/content/taxonomy_manager/childform'), 'modulePath' => $module_path)), 'setting');
-    drupal_add_js(array('taxonomy_manager' => array('modulePath' => $module_path)), 'setting');
-    drupal_add_js(array('taxonomytree' => array('id' => $id)), 'setting');
+    drupal_add_js(array('taxonomy_manager' => array('modulePath' => (url($module_path) == $module_path) ? $module_path : (base_path() . $module_path))), 'setting');
+    drupal_add_js(array('taxonomytree' => array('id' => $id, 'vid' => $vid)), 'setting');
   }
-  
-  $vid = $element['#vid'];
   
   if (!is_array($element['#operations'])) {
     $opertions_callback = implode('_', $element['#parents']) .'_operations';
@@ -1186,7 +1260,7 @@ function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $sib
   else {
     $tree = taxonomy_get_tree($vid, $parent);
   }
-  
+
   return $tree;
 }
 
@@ -1363,16 +1437,18 @@ function _taxonomy_manager_tree_get_next_siblings_count($vid, $page, $parent = 0
  * @param $tree_id 
  * @param $parent term id of parent, that is expanded and of which children have to be loaded
  */
-function taxonomy_manager_tree_build_child_form($tree_id, $parent) { 
-  $vid = db_result(db_query("SELECT vid FROM {term_data} WHERE tid = %d", $parent));
+function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) { 
+  //$vid = db_result(db_query("SELECT vid FROM {term_data} WHERE tid = %d", $parent));
   
   $child_form = array( 
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
     '#parent' => $parent, 
     '#pager' => TRUE, 
-    '#siblings_page' => 1,
   );
+  if (!$root_level) {
+    $child_form['#siblings_page'] = 1;
+  }
   
   $opertions_callback = str_replace('-', '_', $tree_id) .'_operations';
   if (function_exists($opertions_callback)) {

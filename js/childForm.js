@@ -25,20 +25,39 @@ Drupal.attachChildFormToSiblings = function(all, currentIndex) {
 }
 
 
-Drupal.loadChildForm = function(li) {
-  if ($(li).is(".has-children")) {
+Drupal.loadChildForm = function(li, update) {
+  if ($(li).is(".has-children") || update == true) {
     var parentId = Drupal.getTermId(li);
     var url = Drupal.settings.childForm['url'];
-    url += '/'+ Drupal.getTreeId() +'/'+ parentId;
-    $.post(url, null, function(data) {
+    url += '/'+ Drupal.getTreeId() +'/'+ Drupal.getVocId() +'/'+ parentId;
+    $.get(url, null, function(data) {
       $(li).find("ul").remove();
       $(li).find("div.term-line").after(data);
-      Drupal.attachTreeview($(li).find("ul"));
-      Drupal.attachSiblingsForm();
+      var ul = $(li).find("ul");
+      Drupal.attachTreeview(ul);
+      Drupal.attachSiblingsForm(ul);
       Drupal.attachUpdateWeightTerms(li);
       Drupal.attachChildForm(li);
-      Drupal.attachTermData($(li).find("ul"))
+      Drupal.attachTermData($(li).find("ul"));
       $(li).removeClass("has-children");
     });     
   }
 }
+
+Drupal.loadRootForm = function() {
+  var treeId = Drupal.getTreeId();
+  var url = Drupal.settings.childForm['url'];
+  url += '/'+ treeId +'/'+ Drupal.getVocId() +'/0/true';
+  $.get(url, null, function(data) {
+    $('#'+ treeId).html(data);
+    var ul = $('#'+ treeId).find("ul");
+    Drupal.attachTreeview(ul);
+    Drupal.attachSiblingsForm();
+    Drupal.attachUpdateWeightTerms();
+    Drupal.attachChildForm();
+    Drupal.attachTermData();
+    
+  });
+}
+
+

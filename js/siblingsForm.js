@@ -24,7 +24,7 @@ Drupal.attachSiblingsForm = function(ul) {
     
     url += '/'+ Drupal.getTreeId() +'/'+ page +'/'+ prev_id +'/'+ parentId;
     
-    $.post(url, null, function(data) {
+    $.get(url, null, function(data) {
       $(li).find(".term-has-more-siblings").remove();
       $(li).after(data);
       Drupal.attachTreeviewToSiblings($('li', li.parentNode), currentIndex);
