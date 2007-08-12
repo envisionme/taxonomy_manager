@@ -5,15 +5,20 @@ if (Drupal.jsEnabled) {
     var settings = Drupal.settings.taxonomytree || [];
     if (settings['id']) {
       if (!(settings['id'] instanceof Array)) {
-        var ul = $('#'+ settings['id']).find("ul");
-        Drupal.attachTermData(ul);
+        if (Drupal.settings.termData['tid']) {
+          Drupal.termDataForm(Drupal.settings.termData['tid'], Drupal.settings.termData['term_url']);
+        }
+        else {
+          var ul = $('#'+ settings['id']).find("ul");
+          Drupal.attachTermData(ul);
+        }
       }
-      else {
+      /*else {
         for (var i=0; i<settings['id'].length; i++) {
           var ul = $('#'+ settings['id'][i]).find("ul");
           Drupal.attachTermData(ul);
         }
-      }
+      }*/
     }
   });
 }
@@ -42,12 +47,16 @@ Drupal.termDataLoad = function(href, tid, li) {
   $.get(url, null, function(data) {
     var div = $('#taxonomy-term-data');
     $(div).html(data);
-    Drupal.autocompleteAutoAttach();
-    Drupal.termDataForm(tid, div, href, li);
+    Drupal.termDataForm(tid, href, li);
   });
 }
 
-Drupal.termDataForm = function(tid, div, href, li) {
+Drupal.termDataForm = function(tid, href, li) {
+  try {
+    Drupal.autocompleteAutoAttach();
+    Drupal.textareaAttach();
+  } catch(e) {} //autocomplete or textarea js not added to page
+  
   var param = new Object();
   param['tid'] = tid;
   
@@ -57,7 +66,7 @@ Drupal.termDataForm = function(tid, div, href, li) {
     param['op'] = 'add';
     Drupal.termDataSend(param);
     Drupal.termDataLoad(href, tid);
-    Drupal.updateTree(li, tid, param);
+    Drupal.reloadTree(li, tid, param);
 
   });
   
@@ -68,7 +77,7 @@ Drupal.termDataForm = function(tid, div, href, li) {
     param['op'] = 'delete';
     $(this).parent().remove();
     Drupal.termDataSend(param);
-    Drupal.updateTree(li, tid, param);
+    Drupal.reloadTree(li, tid, param);
   });
   
   $('#term-data-name-save').click(function() {
@@ -94,8 +103,6 @@ Drupal.termDataForm = function(tid, div, href, li) {
     
     Drupal.reloadTree(li, tid, param);
     
-    
-
   });
 }
 

@@ -104,14 +104,16 @@ function taxonomy_manager_voc_list() {
  * 
  * @param $vid vocabulary id
  */
-function taxonomy_manager_form($vid, $tid=0) {
+function taxonomy_manager_form($vid, $tid = 0, $search_string = NULL) {
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   drupal_add_css($module_path .'css/taxonomy_manager.css');
   drupal_add_js($module_path .'js/hideForm.js');
   drupal_add_js($module_path .'js/updateWeight.js');
   drupal_add_js($module_path .'js/term_data.js');
+  drupal_add_js('misc/textarea.js');  //because of term data form wich gets dynamically loaded
   
-  drupal_add_js(array('termData' => array('url' => url('admin/content/taxonomy_manager/termdata/edit/'. $vid))), 'setting');
+  
+  drupal_add_js(array('termData' => array('url' => url("admin/content/taxonomy_manager/termdata/edit/". $vid), 'tid' => $tid, 'term_url' => url(taxonomy_manager_tree_link($vid) .'/'. $tid .'/true'))), 'setting');
   drupal_add_js(array('updateWeight' => array('up' => 'edit-weight-up', 'down' => 'edit-weight-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid))), 'setting');
   
   $form = array();
@@ -152,10 +154,11 @@ function taxonomy_manager_form($vid, $tid=0) {
   $form['taxonomy']['manager']['tree'] = array( 
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
-    '#pager' => TRUE, 
+    '#pager' => TRUE,
+    '#search_string' => $search_string,
   );
    
-  /*$form['search'] = array(  
+  $form['search'] = array(  
     '#type' => 'fieldset', 
     '#title' => t('Search'), 
     '#collapsible' => TRUE, 
@@ -172,12 +175,11 @@ function taxonomy_manager_form($vid, $tid=0) {
   );
   
   $form['search']['button'] = array( 
-    //'#value' => theme("image", $module_path ."images/edit-find.png", "go up", NULL, array('id' => 'edit-find')),
     '#type' => 'submit', 
     '#attributes' => array('class' => 'taxonomy-manager-buttons search'),
     '#value' => t('Search'),
     '#suffix' => '<div class="clear"></div>',
-  );*/
+  );
  
   $form['toolbar'] = array( 
     '#type' => 'fieldset', 
@@ -539,7 +541,7 @@ function taxonomy_manager_form_term_data($tid) {
     '#type' => 'textfield',
     '#title' => t('Name'),
     '#default_value' => $term->name,
-    '#size' => 45,
+    '#size' => 35,
     '#maxlength' => 255,
     '#required' => TRUE,
     '#weight' => -20,
@@ -557,16 +559,16 @@ function taxonomy_manager_form_term_data($tid) {
     '#type' => 'textarea',
     '#title' => t('Description'),
     '#default_value' => $term->description,
-    '#cols' => 43,
-    '#rows' => 3,
-    '#prefix' => '<div id="term-data-description-field">',
+    '#cols' => 35,
+    '#rows' => 4,
+    '#prefix' => '<div id="term-data-description"><div id="term-data-description-field">',
     '#suffix' => '</div>',
   );
   
   $form['term_data']['save_description'] = array( 
     '#value' => theme("image", $module_path ."images/document-save.png", "save", NULL),
     '#prefix' => '<div id="term-data-description-save">',
-    '#suffix' => '</div><div class="clear"></div>', 
+    '#suffix' => '</div></div><div class="clear"></div>', 
   );
   
   $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_synonyms($term->tid), t('Synonyms'), 'synonym', FALSE); 
@@ -638,7 +640,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       '#type' => 'textfield',
       '#prefix' => '<div class="term-data-autocomplete-line"><div class="term-data-autocomplete">',
       '#suffix' => '</div>',
-      '#size' => 45,
+      '#size' => 35,
     );
     if ($autocomplete) {
       $form['add']['#autocomplete_path'] = 'taxonomy/autocomplete/'. $term->vid;
@@ -652,7 +654,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       '#attributes' => array('src' => $module_path ."images/list-add-small.png", 'alt' => t('Add')),
       */
       '#prefix' => '<div class="term-data-autocomplete-add">',
-      '#suffix' => '</div></div><div class="clear"></div>',
+      '#suffix' => '</div><div class="clear"></div></div>',
     );
   }
   
@@ -718,6 +720,19 @@ function taxonomy_manager_form_submit($form_id, $form_values) {
   $selected_tids = $form_values['taxonomy']['manager']['tree']['selected_terms'];
 
   switch ($form_values['op']) {
+    case t('Search'): 
+      $search_string = $form_values['search']['field'];
+      $terms = array();
+      $terms = taxonomy_manager_autocomplete_tags_get_tids($search_string, $form_values['vid'], FALSE);
+      $term = $terms[0];
+      if ($term) {
+        drupal_goto('admin/content/taxonomy_manager/'. $form_values['vid'] .'/'. $term);
+      }
+      else {
+        drupal_goto('admin/content/taxonomy_manager/'. $form_values['vid'] .'/0/'. $search_string);
+      }
+      break;
+
     case t('Delete'):
       taxonomy_manager_delete_terms($selected_tids, $form_values['delete']['options']);
       drupal_set_message("Selected terms deleted"); 
@@ -1027,7 +1042,7 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array()) 
  * @param $vid vocabulary id
  * @return array of term ids
  */
-function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid) {
+function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert_new = TRUE) {
   $tids = array();
   
   $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
@@ -1048,7 +1063,7 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid) {
       }
     }
 
-    if (!$typed_term_tid) {
+    if (!$typed_term_tid && $insert_new) {
       $edit = array('vid' => $vid, 'name' => $typed_term);
       $status = taxonomy_save_term($edit);
       $typed_term_tid = $edit['tid'];
@@ -1217,7 +1232,7 @@ function taxonomy_manager_tree_process_elements($element) {
   }
   
   
-  $tree = _taxonomy_manager_tree_get_item($element['#vid'], $element['#parent'], $element['#pager'], $element['#siblings_page']);
+  $tree = _taxonomy_manager_tree_get_item($element['#vid'], $element['#parent'], $element['#pager'], $element['#siblings_page'], $element['#search_string']);
   
   if ($element['#pager'] && !($element['#parent'] || $element['#siblings_page'])) {
     $element['pager'] = array('#value' => theme('pager', NULL, TAXONOMY_MANAGER_TREE_PAGE_SIZE));
@@ -1242,7 +1257,7 @@ function taxonomy_manager_tree_process_elements($element) {
  * @param $siblings_page
  * @return array with term elements
  */
-function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $siblings_page = 0) {
+function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $siblings_page = 0, $search_string = NULL) {
   $tree = array();
   if ($pager) {
     if ($parent || $siblings_page) {
@@ -1250,7 +1265,12 @@ function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $sib
       $result = db_query_range("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = %d ORDER BY weight, name", $vid, $parent, $start, TAXONOMY_MANAGER_TREE_PAGE_SIZE);
     }
     else {
-      $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 ORDER BY weight, name", TAXONOMY_MANAGER_TREE_PAGE_SIZE, 0, NULL, array($vid));
+      if ($search_string) {
+        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 AND name LIKE ('%%%s%%') ORDER BY weight, name", TAXONOMY_MANAGER_TREE_PAGE_SIZE, 0, NULL, array($vid, $search_string));
+      }
+      else {
+        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 ORDER BY weight, name", TAXONOMY_MANAGER_TREE_PAGE_SIZE, 0, NULL, array($vid));
+      }
     }
     
     while ($term = db_fetch_object($result)) {
