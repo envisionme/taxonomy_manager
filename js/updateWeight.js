@@ -1,7 +1,13 @@
 // $Id$
 
+/**
+ * @file js for changing weights of terms with Up and Down arrows
+ */
+
+//object to store weights (tid => weight)
 var weights = new Object();
 
+//global killswitch
 if (Drupal.jsEnabled) {
   $(document).ready(function() {
     var settings = Drupal.settings.updateWeight || [];
@@ -10,6 +16,10 @@ if (Drupal.jsEnabled) {
   });
 }
 
+/**
+ * adds click events for Up and Down buttons in the toolbar, which
+ * allow the moving of selected (can be more) terms
+ */
 Drupal.attachUpdateWeightToolbar = function(upButton, downButton) {
   var selected;
   var url = Drupal.settings.updateWeight['url'];  
@@ -42,6 +52,10 @@ Drupal.attachUpdateWeightToolbar = function(upButton, downButton) {
   });
 }
 
+/**
+ * adds small up and down arrows to each term
+ * arrows get displayed on mouseover
+ */
 Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
   var url = Drupal.settings.updateWeight['url'];
   
@@ -76,9 +90,16 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     var downTerm = $(upTerm).prev(); 
     
     Drupal.orderTerms(upTerm, downTerm);
-    $(downTerm).find('.term-operations').hide();
-    $(upTerm).find('.term-operations').hide();
     $.post(url, weights);
+    
+    $(downTerm).find(termLineClass).unbind('mouseover');
+    setTimeout(function() {
+      $(upTerm).find('.term-operations').hide();
+      $(downTerm).find(termLineClass).mouseover(function() {
+        $(this).find('.term-operations').show();
+      });
+    }, 1500);
+    
   });
   
   
@@ -87,13 +108,23 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     var upTerm = $(downTerm).next();
     
     Drupal.orderTerms(upTerm, downTerm);
-    $(downTerm).find('.term-operations').hide();
-    $(upTerm).find('.term-operations').hide();
     $.post(url, weights);
+    
+    $(upTerm).find(termLineClass).unbind('mouseover');
+    setTimeout(function() {
+      $(downTerm).find('.term-operations').hide();
+      $(upTerm).find(termLineClass).mouseover(function() {
+        $(this).find('.term-operations').show();
+      });
+    }, 1500);
+    
   });
 
 }
 
+/**
+ * return array of selected terms
+ */
 Drupal.getSelectedTerms = function() {
   var terms = new Array();
   $('.treeview').find("input[@type=checkbox][@checked]").each(function() {
@@ -104,6 +135,12 @@ Drupal.getSelectedTerms = function() {
   return terms;
 }
 
+/**
+ * reorders terms
+ *   - swap list elements in DOM
+ *   - post updated weights to callback in php
+ *   - update classes of tree view
+ */
 Drupal.orderTerms = function(upTerm, downTerm) {
   try {
     Drupal.getTermId(upTerm);
@@ -115,11 +152,23 @@ Drupal.orderTerms = function(upTerm, downTerm) {
   }
 }
 
+/**
+ * simple swap of two elements
+ */
 Drupal.swapTerms = function(upTerm, downTerm) { 
   $(upTerm).after(downTerm);
   $(downTerm).before(upTerm);
 }
 
+/**
+ * updating weights of swaped terms
+ * if two terms have different weights, then weights are being swaped
+ * else, if both have same weights, upTerm gets decreased
+ *
+ * if prev/next siblings of up/down terms have same weights as current
+ * swaped, they have to be updated by de/increasing weight (by 1) to ensure
+ * unique position of swaped terms
+ */
 Drupal.swapWeights = function(upTerm, downTerm) {
   var upWeight = Drupal.getWeight(upTerm);
   var downWeight = Drupal.getWeight(downTerm);
@@ -173,6 +222,9 @@ Drupal.swapWeights = function(upTerm, downTerm) {
   }
 }
 
+/**
+ * helper to return weight of a term
+ */
 Drupal.getWeight = function(li) {
   var id = Drupal.getTermId(li);
   var weight;

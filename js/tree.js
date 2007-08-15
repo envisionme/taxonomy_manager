@@ -1,6 +1,10 @@
 // $Id$
 
+/**
+ * @files js for collapsible tree view with some helper functions for updating tree structure
+ */
 
+//global killswitch
 if (Drupal.jsEnabled) {
   $(document).ready(function() {
     var settings = Drupal.settings.taxonomytree || [];
@@ -10,17 +14,13 @@ if (Drupal.jsEnabled) {
         Drupal.attachTreeview(ul);
         Drupal.attachThrobber(settings['id']);
       }
-      else {
-        for (var i=0; i<settings['id'].length; i++) {
-          var ul = $('#'+ settings['id'][i]).find("ul");
-          Drupal.attachTreeview(ul);
-          Drupal.attachThrobber(settings['id'][i]);
-        }
-      }
     }
   });
 }
 
+/**
+ * adds collapsibel treeview to a given list
+ */
 Drupal.attachTreeview = function(ul) {
   $(ul)
     .addClass("treeview")
@@ -30,6 +30,9 @@ Drupal.attachTreeview = function(ul) {
     });
 }
 
+/**
+ * adds treeview to next siblings
+ */
 Drupal.attachTreeviewToSiblings = function(all, currentIndex) {
   var nextSiblings = all.gt(currentIndex);
   nextSiblings.children("ul").each(function() {
@@ -43,12 +46,18 @@ Drupal.attachTreeviewToSiblings = function(all, currentIndex) {
   });
 }
 
+/**
+ * toggles a collapsible/expandable tree element by swaping classes
+ */
 Drupal.toggleTree = function(node) {
   $(node).parent().find("ul:first").toggle();
   Drupal.swapClasses(node.parentNode, "expandable", "collapsable");
   Drupal.swapClasses(node.parentNode, "lastExpandable", "lastCollapsable");
 }
 
+/**
+ * helper function for swapping two classes
+ */
 Drupal.swapClasses = function(node, c1, c2) {
   if ($.className.has(node, c1)) {
     $(node).removeClass(c1).addClass(c2);
@@ -58,11 +67,18 @@ Drupal.swapClasses = function(node, c1, c2) {
   } 
 }
 
+/**
+ * returns terms id of a given list element
+ */
 Drupal.getTermId = function(li) {
   var id = $(li).find("input:hidden[@class=term-id]").attr("value");
   return id;
 }
 
+/**
+ * return term id of a prent of a given list element
+ * if no parent exists (root level), returns 0
+ */
 Drupal.getParentId = function(li) {
   var parentId;
   try {
@@ -74,6 +90,9 @@ Drupal.getParentId = function(li) {
   return parentId;
 }
 
+/**
+ * update classes for tree view, if list elements get swaped
+ */
 Drupal.updateTree = function(upTerm, downTerm) {  
   if ($(upTerm).is(".last")) {
     $(upTerm).removeClass("last");
@@ -89,6 +108,9 @@ Drupal.updateTree = function(upTerm, downTerm) {
   }
 }
 
+/**
+ * update classes for tree view for a list element moved downwards
+ */
 Drupal.updateTreeDownTerm = function(downTerm) {
   if ($(downTerm).is(".expandable")) {
     $(downTerm).removeClass("expandable").addClass("lastExpandable");
@@ -101,14 +123,23 @@ Drupal.updateTreeDownTerm = function(downTerm) {
   }
 }
 
+/**
+ * returns Tree Id
+ */
 Drupal.getTreeId = function() {
   return Drupal.settings.taxonomytree['id']; 
 }
 
+/**
+ * return Voc Id
+ */
 Drupal.getVocId = function() {
   return Drupal.settings.taxonomytree['vid']; 
 }
 
+/**
+ * attaches a throbber element to the taxonomy manager
+ */
 Drupal.attachThrobber = function(tree) {
   $('<div><img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25"></div>').hide()
     .ajaxStart(function(){

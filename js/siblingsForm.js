@@ -1,10 +1,20 @@
+// $Id$
 
+/**
+ * @file loads next siblings, if only parts of long lists are initially loaded
+ */
+ 
+//global killswitch
 if (Drupal.jsEnabled) {
   $(document).ready(function() {
     Drupal.attachSiblingsForm();  
   })
 }
 
+/**
+ * adds link for loading next siblings terms, when click terms get loaded through ahah
+ * adds all needed js like treeview, weightning, etc.. to new added terms
+ */
 Drupal.attachSiblingsForm = function(ul) {
   var url = Drupal.settings.siblingsForm['url'];
   var list = "li.has-more-siblings div.term-has-more-siblings";
@@ -39,6 +49,9 @@ Drupal.attachSiblingsForm = function(ul) {
   });
 }
 
+/**
+ * helper function for getting out the current page
+ */
 Drupal.getPage = function(li) { 
   return $(li).find("input:hidden[@class=page]").attr("value");
 }

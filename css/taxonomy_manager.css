@@ -18,6 +18,10 @@
   padding: 5px;
 }
 
+#taxonomy-manager-search .fieldset-wrapper {
+  overflow: visible; /*fixes hidden autocomplete result in FF*/
+}
+
 #edit-search-button {
   margin-top: 15px;
   margin-left: 10px;

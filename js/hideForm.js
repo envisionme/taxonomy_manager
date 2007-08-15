@@ -1,5 +1,10 @@
 // $Id$
 
+/**
+ * @file shows / hides form elements
+ */
+ 
+// global killswitch
 if (Drupal.jsEnabled) {
   $(document).ready(function() {
     var settings = Drupal.settings.hideForm || [];
@@ -18,12 +23,16 @@ if (Drupal.jsEnabled) {
   })
 }
 
+/**
+ * adds click events to show / hide button
+ */
 Drupal.attachHideForm = function(div, show_button, hide_button) {
   var hide = true;
   div = "#"+ div;
   show_button = "#"+ show_button;
   hide_button = "#"+ hide_button;
   
+  //don't hide if there is an error in the form
   $(div).find("input").each(function() {
     if($.className.has(this, "error")) {
       hide = false;

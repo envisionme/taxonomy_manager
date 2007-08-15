@@ -1,4 +1,10 @@
+// $Id$
 
+/**
+ * @file js support for term editing form for ajax saving and tree updating
+ */
+
+//global killswitch
 if (Drupal.jsEnabled) {
   $(document).ready(function() {
     //use tree settings....
@@ -13,16 +19,13 @@ if (Drupal.jsEnabled) {
           Drupal.attachTermData(ul);
         }
       }
-      /*else {
-        for (var i=0; i<settings['id'].length; i++) {
-          var ul = $('#'+ settings['id'][i]).find("ul");
-          Drupal.attachTermData(ul);
-        }
-      }*/
     }
   });
 }
 
+/**
+ * adds click events to the term links in the tree structure
+ */
 Drupal.attachTermData = function(ul) {
   $('a.term-data-link').click(function() {
     var li = $(this).parents("li");
@@ -32,6 +35,9 @@ Drupal.attachTermData = function(ul) {
   });
 }
 
+/**
+ * attaches click events to next siblings
+ */
 Drupal.attachTermDataToSiblings = function(all, currentIndex) {
   var nextSiblings = all.gt(currentIndex);
   $(nextSiblings).find('a.term-data-link').click(function() {
@@ -42,6 +48,9 @@ Drupal.attachTermDataToSiblings = function(all, currentIndex) {
   });
 }
 
+/**
+ * loads ahah form from given link and displays it on the right side
+ */
 Drupal.termDataLoad = function(href, tid, li) {
   var url = href +'/true';
   $.get(url, null, function(data) {
@@ -51,6 +60,9 @@ Drupal.termDataLoad = function(href, tid, li) {
   });
 }
 
+/**
+ * adds events to possible operations
+ */
 Drupal.termDataForm = function(tid, href, li) {
   try {
     Drupal.autocompleteAutoAttach();
@@ -106,6 +118,9 @@ Drupal.termDataForm = function(tid, href, li) {
   });
 }
 
+/**
+ * sends updated data through param
+ */
 Drupal.termDataSend = function(param) {
   var url= Drupal.settings.termData['url'];
   if (param['value'] != '' && param['attr_type'] != '') {
@@ -119,6 +134,9 @@ Drupal.termDataSend = function(param) {
   }
 }
 
+/**
+ * updates tree strucutre
+ */
 Drupal.reloadTree = function (li, tid, param) {;
   if (param['attr_type'] == 'parent' || (param['attr_type'] == 'child' && param['op'] == 'add')) {
     Drupal.loadRootForm();
@@ -136,6 +154,9 @@ Drupal.reloadTree = function (li, tid, param) {;
   }
 }
 
+/**
+ * updates term name in tree structure
+ */
 Drupal.updateTermName = function(tid, name) {
   $('fieldset#taxonomy-term-data-fieldset legend').html(name);
   $('ul.treeview li input:hidden[@class=term-id][@value='+ tid +']')

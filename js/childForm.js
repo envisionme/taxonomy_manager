@@ -1,11 +1,19 @@
 // $Id$
 
+/**
+ *@file generates nested children terms, which are loaded through ahah
+ */
+
+//global killswitch
 if (Drupal.jsEnabled) {
   $(document).ready(function() {
     Drupal.attachChildForm();  
-  })
+  });
 }
 
+/**
+ * add click events to expandable parents, where child terms have to be loaded
+ */
 Drupal.attachChildForm = function(subTree) {
   var list = "li.has-children div.hitArea";
   if (subTree) {
@@ -17,6 +25,9 @@ Drupal.attachChildForm = function(subTree) {
   });
 }
 
+/**
+ * add click events to expandable parents to next siblings
+ */
 Drupal.attachChildFormToSiblings = function(all, currentIndex) {
   var nextSiblings = all.gt(currentIndex);
   $(nextSiblings).filter('.has-children').find('div.hitArea').click(function() {
@@ -24,7 +35,10 @@ Drupal.attachChildFormToSiblings = function(all, currentIndex) {
   });
 }
 
-
+/**
+ * loads child terms and appends html to list
+ * adds treeview, weighting etc. js to inserted child list
+ */
 Drupal.loadChildForm = function(li, update) {
   if ($(li).is(".has-children") || update == true) {
     var parentId = Drupal.getTermId(li);
@@ -44,6 +58,9 @@ Drupal.loadChildForm = function(li, update) {
   }
 }
 
+/**
+ * function for reloading root tree elements
+ */
 Drupal.loadRootForm = function() {
   var treeId = Drupal.getTreeId();
   var url = Drupal.settings.childForm['url'];
@@ -56,7 +73,6 @@ Drupal.loadRootForm = function() {
     Drupal.attachUpdateWeightTerms();
     Drupal.attachChildForm();
     Drupal.attachTermData();
-    
   });
 }
 
