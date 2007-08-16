@@ -14,10 +14,8 @@ if (Drupal.jsEnabled) {
         if (Drupal.settings.termData['tid']) {
           Drupal.termDataForm(Drupal.settings.termData['tid'], Drupal.settings.termData['term_url']);
         }
-        else {
-          var ul = $('#'+ settings['id']).find("ul");
-          Drupal.attachTermData(ul);
-        }
+        var ul = $('#'+ settings['id']).find("ul");
+        Drupal.attachTermData(ul);
       }
     }
   });
@@ -138,10 +136,10 @@ Drupal.termDataSend = function(param) {
  * updates tree strucutre
  */
 Drupal.reloadTree = function (li, tid, param) {;
-  if (param['attr_type'] == 'parent' || (param['attr_type'] == 'child' && param['op'] == 'add')) {
+  if (param['attr_type'] == 'parent') {
     Drupal.loadRootForm();
   }
-  else if (param['attr_type'] == 'child' || param['attr_type'] == 'weight') {
+  else if (param['attr_type'] == 'weight') {
     var parentLi = $(li).parents("li");
     try {
       parentLi.attr("id");

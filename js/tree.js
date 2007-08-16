@@ -12,7 +12,7 @@ if (Drupal.jsEnabled) {
       if (!(settings['id'] instanceof Array)) {
         var ul = $('#'+ settings['id']).find("ul");
         Drupal.attachTreeview(ul);
-        Drupal.attachThrobber(settings['id']);
+        Drupal.attachThrobber();
       }
     }
   });
@@ -140,15 +140,16 @@ Drupal.getVocId = function() {
 /**
  * attaches a throbber element to the taxonomy manager
  */
-Drupal.attachThrobber = function(tree) {
+Drupal.attachThrobber = function() {
+  var div = '#taxonomy-manager';
   $('<div><img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25"></div>').hide()
     .ajaxStart(function(){
       $(this).show();
-      $('#'+ tree).css('opacity', '0.5');
+      $(div).css('opacity', '0.5');
     })
     .ajaxStop(function(){
       $(this).hide();
-      $('#'+ tree).css('opacity', '1');
+      $(div).css('opacity', '1');
     })
-    .appendTo("#taxonomy-toolbar-throbber"); 
+    .appendTo("#taxonomy-manager-toolbar-throbber"); 
 }
