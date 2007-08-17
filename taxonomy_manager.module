@@ -29,14 +29,6 @@ function taxonomy_manager_menu($may_cache) {
       'type' => MENU_NORMAL_ITEM
     );
     
-    $items[] = array('path' => 'admin/content/taxonomy_manager',
-      'title' => t('Taxonomy Manager'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('taxonomy_manager_form'),
-      'access' => user_access('administer taxonomy'), 
-      'type' => MENU_CALLBACK 
-    );
-    
     $items[] = array('path' => 'admin/content/taxonomy_manager/childform',
       'callback' => 'taxonomy_manager_tree_build_child_form',
       'access' => user_access('administer taxonomy'), 
@@ -66,6 +58,25 @@ function taxonomy_manager_menu($may_cache) {
       'access' => user_access('administer taxonomy'), 
       'type' => MENU_CALLBACK, 
     );
+    
+    //override default term page so that we can consider merged terms
+    $items[] = array('path' => 'taxonomy/term',
+      'title' => t('Taxonomy term'),
+      'callback' => 'taxonomy_manager_term_page',
+      'access' => user_access('access content'),
+      'type' => MENU_CALLBACK);
+  }
+  else {
+    if (arg(0) == 'admin' && arg(1) == 'content' && arg(2) == 'taxonomy_manager' && is_numeric(arg(3))) {
+      $vid = arg(3);
+      $items[] = array('path' => 'admin/content/taxonomy_manager/'. $vid,
+        'title' => t('Taxonomy Manager'),
+        'callback' => 'drupal_get_form',
+        'callback arguments' => array('taxonomy_manager_form', $vid),
+        'access' => user_access('administer taxonomy'), 
+        'type' => MENU_CALLBACK 
+      );
+    } 
   }
   
   return $items;
@@ -710,12 +721,13 @@ function taxonomy_manager_form_validate($form_id, $form_values) {
       $main_terms = array();
       $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
       preg_match_all($regexp, $form_values['merge']['main_term'], $matches);
-      $main_terms = array_unique($matches[1]);
-      if (count($main_terms) > 1) {
-        form_set_error('merge][main_term', t("Please only enter single names into %title", array('%title' => "'". t('Main term') ."'")));
-      }
-      else if (count($main_terms) == 0) {
+      $main_terms = $matches[1];
+
+      if (!is_array($main_terms) || count($main_terms) == 0 || empty ($main_terms[0])) {
         form_set_error('merge][main_term', t("Please enter a name into %title", array('%title' => "'". t('Main term') ."'")));
+      }
+      else if (count($main_terms) > 1) {
+        form_set_error('merge][main_term', t("Please only enter single names into %title", array('%title' => "'". t('Main term') ."'")));
       }
       
       if (count($selected_tids) < 1) {
@@ -1070,7 +1082,98 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
   if ($voc->hierarchy == 1 && count($merging_terms_parents) == 1 && $new_inserted) {
     db_query("UPDATE {term_hierarchy} SET parent = %d WHERE tid = %d", array_shift($merging_terms_parents), $main_term);
   }
+  
+  taxonomy_manager_merge_history_update($main_term, $merging_terms);
+}
 
+/**
+ * inserts merging information (main_tid - merged_tid ) into taxonomy_manager_merge
+ * and updates cache, which is used to reconstructs taxonomy/term pages
+ *
+ * @param $main_tid term if of main term
+ * @param $merged_tids array of merged term ids
+ */
+function taxonomy_manager_merge_history_update($main_tid, $merged_tids) {
+  if (!is_array($merged_tids)) (array) $merged_tids;
+  
+  foreach ($merged_tids as $merged_tid) {
+    if ($merged_tid != $main_tid) {
+      //check if merged term has been a main term once before
+      $check_merged = db_result(db_query("SELECT COUNT(*) FROM {taxonomy_manager_merge} WHERE main_tid = %d", $merged_tid));
+  
+      if ($check_merged) {
+        db_query("UPDATE {taxonomy_manager_merge} SET main_tid = %d WHERE main_tid = %d", $main_tid, $merged_tid);
+      }
+      //insert into merging history
+      db_query("INSERT INTO {taxonomy_manager_merge} (main_tid, merged_tid) VALUES (%d, %d)", $main_tid, $merged_tid);
+    }
+  }
+  taxonomy_manager_merge_history_update_cache();
+}
+
+/**
+ * sets / updates cache for merging history
+ */
+function taxonomy_manager_merge_history_update_cache() {
+  $merged_terms = array();
+  
+  $result = db_query("SELECT * FROM {taxonomy_manager_merge}");
+  while ($data = db_fetch_object($result)) {
+    $merged_terms[$data->merged_tid] = $data->main_tid; 
+  }
+  cache_set('taxonomy_manager_merge', 'cache', serialize($merged_terms));
+}
+
+/**
+ * helper function for getting out the main term of former merged term (which no 
+ * long exists)
+ *
+ * @param $tid of which the main term has to be evaluated
+ * @return term id of main term, if exists, else 0
+ */
+function taxonomy_manager_merge_get_main_term($tid) {
+  $merged_terms = array();
+  $cache = cache_get('taxonomy_manager_merge', 'cache');
+  if (!$cache) {
+    taxonomy_manager_merge_history_update_cache();
+  }
+  $merged_terms = unserialize($cache->data);
+  return $merged_terms[$tid];
+}
+
+/**
+ * menu callback 
+ * 
+ * replaces taxonomy_mangager_term_page, because we have to consider that the
+ * url may contain former merged terms, which no longer exists
+ * every given tid gets checked, if it has been merged. if yes, the tid gets replaced
+ * with tid of main term and afterwards passed to default taxonomy_manager_term_page
+ *
+ * @param $str_tids
+ * @param $depth
+ * @param $op
+ */
+function taxonomy_manager_term_page($str_tids = '', $depth = 0, $op = 'page') {
+  $tids = taxonomy_terms_parse_string($str_tids);
+  if ($tids['operator'] == 'and' || $tids['operator'] == 'or') {
+   $new_tids = array();
+   foreach ($tids['tids'] as $tid) {
+     //get cached main term, if not merged, returns 0
+     $main_term = taxonomy_manager_merge_get_main_term($tid);
+     $new_tids[] = ($main_term) ? $main_term : $tid;
+   }
+   if ($tids['operator'] == 'and') {
+     $operator = ',';
+   }
+   else if ($tids['operator'] == 'or') {
+     $operator = '+';
+   }
+   $new_tids_str = implode($operator, $new_tids);
+   return taxonomy_term_page($new_tids_str, $depth, $op);
+  }
+  else {
+    drupal_not_found();
+  }
 }
 
 /**
