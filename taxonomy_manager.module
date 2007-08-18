@@ -839,8 +839,9 @@ function taxonomy_manager_term_data_edit($vid) {
       }
     }
     else {
-      $values = array();
+      $typed_term_tids = array();
       $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $term->vid);
+      $values = array();
       foreach ($typed_term_tids as $term_info) {
         $values[] = $term_info['tid'];
       }
@@ -863,6 +864,17 @@ function taxonomy_manager_term_data_edit($vid) {
         if ($op == 'add') {
           db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (%d, %d)", $value, $tid);
         }
+      }
+      if ($op == 'delete') {
+        $parents = taxonomy_get_parents($tid);
+        if (count($parents) == 0) {
+          //ensure that a term has a least parent 0
+          db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
+          db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (0, %d)", $tid);
+        }
+      }
+      else if ($op == 'add') {
+        db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
       }
       break; 
     
@@ -892,12 +904,10 @@ function taxonomy_manager_term_data_edit($vid) {
       if (is_numeric($values)) {
         db_query("UPDATE {term_data} SET weight = %d WHERE tid = %d", $values, $tid);
       }
+      break;
   }
 
   module_invoke_all('taxonomy', 'update', 'term', (array) taxonomy_get_term($tid));
-  
-  //necessary?
-  cache_clear_all();
   
   exit();
 }
