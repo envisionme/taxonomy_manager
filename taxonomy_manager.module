@@ -536,6 +536,7 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE) {
   if (!$ahah) {
     drupal_goto('admin/content/taxonomy_manager/'. $vid .'/'. $tid);
   }
+  $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
   
   $form = taxonomy_manager_form_term_data($tid);
   $form = form_builder('taxonomy_manager_form', $form);
@@ -1603,13 +1604,13 @@ function _taxonomy_manager_tree_get_next_siblings_count($vid, $page, $parent = 0
  * @param $parent term id of parent, that is expanded and of which children have to be loaded
  */
 function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) { 
-  //$vid = db_result(db_query("SELECT vid FROM {term_data} WHERE tid = %d", $parent));
+  $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
   
   $child_form = array( 
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
     '#parent' => $parent, 
-    '#pager' => TRUE, 
+    '#pager' => TRUE,
   );
   if (!$root_level) {
     $child_form['#siblings_page'] = 1;
@@ -1643,6 +1644,8 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
  * @param $parent if in hierarchies, parent id
  */
 function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $parent = 0) {
+  $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
+  
   $vid = db_result(db_query("SELECT vid FROM {term_data} WHERE tid = %d", $prev_tid));
     
   $siblings_form = array( 
