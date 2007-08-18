@@ -74,10 +74,7 @@ Drupal.termDataForm = function(tid, href, li) {
     param['attr_type'] = $(this).find("img").attr("class");
     param['value'] = $(this).parent().find('input:text').attr('value');
     param['op'] = 'add';
-    Drupal.termDataSend(param);
-    Drupal.termDataLoad(href, tid);
-    Drupal.reloadTree(li, tid, param);
-
+    Drupal.termDataSend(li, tid, href, param);
   });
   
   $('.taxonomy-term-data-operations').click(function() {
@@ -85,58 +82,59 @@ Drupal.termDataForm = function(tid, href, li) {
     var value = $(this).siblings(".taxonomy-term-data-name").attr("id");
     param['value'] = value.substring(5);
     param['op'] = 'delete';
+    Drupal.termDataSend(li, tid, href, param);
     $(this).parent().remove();
-    Drupal.termDataSend(param);
-    Drupal.reloadTree(li, tid, param);
   });
   
   $('#term-data-name-save').click(function() {
     param['attr_type'] = 'name';
     param['value'] = $('#term-data-name-field').find('input:text').attr('value');
-    Drupal.updateTermName(tid, param['value']);
     param['op'] = 'update';
-    Drupal.termDataSend(param);
+    Drupal.termDataSend(li, tid, href, param);
+    Drupal.updateTermName(tid, param['value']);
   });
   
   $('#term-data-description-save').click(function() {
     param['value'] = $('#term-data-description-field').find('textarea').attr('value');
     param['attr_type'] = 'description';
     param['op'] = 'update';
-    Drupal.termDataSend(param);
+    Drupal.termDataSend(li, tid, href, param);
   });
   
   $('#edit-term-data-weight').change(function() {
     param['value'] = this.value;
     param['attr_type'] = 'weight';
     param['op'] = 'update';
-    Drupal.termDataSend(param);
-    
-    Drupal.reloadTree(li, tid, param);
-    
+    Drupal.termDataSend(li, tid, href, param);
   });
 }
 
 /**
  * sends updated data through param
  */
-Drupal.termDataSend = function(param) {
+Drupal.termDataSend = function(li, tid, href, param) {
   var url= Drupal.settings.termData['url'];
   if (param['value'] != '' && param['attr_type'] != '') {
     //synchronous to ensure consistent data
     $.ajax({
-      async: false,
       data: param, 
       type: "POST", 
-      url: url
+      url: url,
+      complete: function() {
+        Drupal.termDataUpdate(li, tid, href, param);
+      }
     });
   }
 }
 
 /**
- * updates tree strucutre
+ * updates term data form and if necessary tree structure
  */
-Drupal.reloadTree = function (li, tid, param) {;
-  if (param['attr_type'] == 'parent') {
+Drupal.termDataUpdate = function(li, tid, href, param) {
+  if (param['op'] == 'add') {
+    Drupal.termDataLoad(href, tid);
+  }
+  if (param['attr_type'] == 'parent' || (param['attr_type'] == 'related' && param['op'] == 'add')) {
     Drupal.loadRootForm();
   }
   else if (param['attr_type'] == 'weight') {

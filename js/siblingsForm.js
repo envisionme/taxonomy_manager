@@ -43,6 +43,7 @@ Drupal.attachSiblingsForm = function(ul) {
       Drupal.attachTermDataToSiblings($('li', li.parentNode), currentIndex);
       
       $(li).removeClass("last").removeClass("has-more-siblings");
+      $(li).find('.term-operations').hide();
       Drupal.swapClasses(li, "lastExpandable", "expandable");
       Drupal.attachSiblingsForm($(li).parent());
     });

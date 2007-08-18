@@ -883,6 +883,7 @@ function taxonomy_manager_term_data_edit($vid) {
       foreach ($values as $value) {
         if ($value != 0) {
           db_query("DELETE FROM {term_relation} WHERE tid1 = %d AND tid2 = %d", $tid, $value);
+          db_query("DELETE FROM {term_relation} WHERE tid2 = %d AND tid1 = %d", $tid, $value);
           if ($op == 'add') {
             db_query('INSERT INTO {term_relation} (tid1, tid2) VALUES (%d, %d)', $tid, $value);
           }
@@ -1262,6 +1263,7 @@ function theme_taxonomy_manager_form($form) {
   $output .= '<div id="taxonomy-term-data">';
   $output .= $term_data;
   $output .= '</div>';
+  $output .= '<div class="clear" />';
   $output .= '</div>';
   
   return $output;
