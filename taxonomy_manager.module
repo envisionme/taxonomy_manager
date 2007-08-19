@@ -93,8 +93,7 @@ function taxonomy_manager_voc_list() {
     $voc_list[] = l($vocabulary->name, 'admin/content/taxonomy_manager/'. $vocabulary->vid);
   }
   
-  return theme('item_list', $voc_list, "Vocabularies:");
-  
+  return theme('item_list', $voc_list, t("Vocabularies:"));
 }
 
 /**
@@ -119,6 +118,8 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
   
   $voc = taxonomy_get_vocabulary($vid);
   
+  drupal_set_title(t("Taxonomy Manager - %voc_name", array("%voc_name" => $voc->name)));
+  
   if (!is_numeric($voc->vid)) {
     $text = t('No vocabulary with this ID available!. ');
     $text .= t('Check this !link_list for available vocabularies or !link_create a new one', array('!link_list' => l('list', 'admin/content/taxonomy_manager'), '!link_create' => l('create', 'admin/content/taxonomy/add/vocabulary')));
@@ -135,7 +136,7 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
     $form['text'] = array( 
       '#value' => $text,
     );
-    $form += taxonomy_manager_add_form(false);
+    $form += taxonomy_manager_add_form($voc, false);
     return $form;
   }
   
@@ -156,11 +157,16 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
     '#pager' => TRUE,
     '#search_string' => ($tid) ? NULL : $filter,
   );
-   
+  
+  $search_description = t("This search allows you to directly select an existing term for 
+    editing. Else, if your input doesn't contain an existing term, the value will be used
+    for filtering root level terms (but this doesn't affect any child term).");
+  
   $form['search'] = array(  
     '#type' => 'fieldset',
     '#attributes' => array('id' => 'taxonomy-manager-search'), 
-    '#title' => t('Search'), 
+    '#title' => t('Search'),
+    '#description' => $search_description, 
     '#collapsible' => TRUE, 
     '#collapsed' => TRUE,
     '#tree' => TRUE, 
@@ -240,7 +246,7 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
     '#weight' => 20,
   );
   
-  $form += taxonomy_manager_add_form();
+  $form += taxonomy_manager_add_form($voc);
   
   $form += taxonomy_manager_merge_form($voc);
   
@@ -285,9 +291,7 @@ function taxonomy_manager_confirm_delete($voc) {
     'show_button' => 'edit-delete-confirm', 
     'hide_button' => 'edit-delete-cancel', 
     'div' => 'del-confirm-form')), 'setting');
-  
-  $text = t('Confirmation required! Remember all term specific data will be lost!');
-  
+    
   $form = array();
   
   $form['delete'] = array(
@@ -298,13 +302,14 @@ function taxonomy_manager_confirm_delete($voc) {
     '#suffix' => '</div>',
   );
   
-  $form['delete']['text'] = array( 
-    '#value' => "<b>". $text ."</b>", 
-  );
+  $question = t('Are you sure you want to delete all selected terms? ');
+  $info = t('Remember all term specific data will be lost. This action cannot be undone.');
+  
+  $form['delete']['text'] = array('#value' => "<b>". $question ."</b><br/>". $info);
   
   if ($voc->hierarchy != 0) {
     $options = array( 
-      'delete_orphans' => t('Delete orphans'), 
+      'delete_orphans' => t('Delete children of selected terms, if there are any'), 
     );
      
     $form['delete']['options'] = array( 
@@ -333,7 +338,7 @@ function taxonomy_manager_confirm_delete($voc) {
 /**
  * form for adding terms
  */
-function taxonomy_manager_add_form($hide_form = TRUE) {
+function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   if ($hide_form) {
     drupal_add_js(array('hideForm' => array(
       'show_button' => 'edit-add-show', 
@@ -343,17 +348,24 @@ function taxonomy_manager_add_form($hide_form = TRUE) {
   
   $form = array();
   
+  $description = "";
+  if ($voc->hierarchy >= 1) {
+    $description = t("New inserted terms get automatically children of the selected term in the tree structure, if there are any selected.");
+  }
+  if ($voc->hierarchy == 2) {
+    $description .= t(" In multiple hierarchical vocabularies it's possbile to selected more terms as parent (multi-parent).");
+  }
+  
   $form['add'] = array( 
     '#type' => 'fieldset', 
     '#tree' => TRUE,
     '#title' => t('Add new terms'),
     '#prefix' => '<div id="add-form">',
     '#suffix' => '</div>',
-    '#description' => t('Depending on the hierarchy settings, you can set parents (one ore more).
-                         Selected terms will get the parents of the new inserted'), 
+    '#description' => $description,
   );
   
-  for ($i=0; $i<5; $i++) {
+  for ($i=0; $i<6; $i++) {
     $form['add']['term'][$i] = array( 
       '#type' => 'textfield', 
     );
@@ -386,22 +398,27 @@ function taxonomy_manager_merge_form($voc) {
   
   $form = array();
   
+  $description .= t("Selected terms can get merged into another term (called main term). 
+    All term - node association of merged terms will be transfered to the main term.
+    Additional, names of merged terms get synonyms of the main term. 
+    Afterwards all merged terms will be deleted automatically.");
+  
   $form['merge'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
     '#title' => t('Merging of terms'), 
+    '#description' => $description,
     '#prefix' => '<div id="merge-form">',
     '#suffix' => '</div>', 
   );
   
-  $help = t("You can choose either an exisiting term or either typ in a new
-    term, which will be created automatically, as main term (selected terms
-    get merged into this term)");
+  $auto_description = t("The main term can be either choosen from the list of existing terms,
+    or, a new term can be inserted automatically and used as main term");
   
   $form['merge']['main_term'] = array(
     '#type' => 'textfield',
     '#title' => t('Main term'),
-    '#description' => $help,
+    '#description' => $auto_description,
     '#required' => FALSE,
     '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
   );
@@ -411,16 +428,16 @@ function taxonomy_manager_merge_form($voc) {
   switch ($voc->hierarchy) {
     //multiple hierarchy 
     case 2:  
-      $options['collect_parents'] = t('Collect all parents of merging terms an add it to main term');
+      $options['collect_parents'] = t('Collect all parents of merged terms an add it to main term');
     
     //single hierarchy 
     case 1:  
-      $options['collect_children'] = t('Collect all children of merging terms an add it to main term');
+      $options['collect_children'] = t('Collect all children of merged terms an add it to main term');
     break;
   }
   
   if ($voc->relations) {
-    $options['collect_relations'] = t('Collect all relations of merging terms and add it to main term');
+    $options['collect_relations'] = t('Collect all relations of merged terms and add it to main term');
   }
   
   if (count($options) > 0) {
@@ -458,24 +475,31 @@ function taxonomy_manager_move_form($voc) {
   
   $form = array();
   
+  $description = t("This operation allows the changing of the hierarchies by moving of selected
+    terms from one parent to another. If you want to move terms back to the root level, 
+    simple leave the autocomplete field below empty.");
+  
   $form['move'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
     '#title' => t('Moving of terms'),
+    '#description' => $description,
     '#prefix' => '<div id="move-form">',
     '#suffix' => '</div>',
   );
   
-  $help = t("You can choose either an exisiting term or either typ in a new
-    term, which will be created automatically, as parent term (selected terms
-    get children of this term). If multiple parents are allowed, you can seperate
-    more terms in the autocomplete form with ','.
-    If selected terms should have no parent, leave it blank!");
+  $auto_description = t("The parent term can be either choosen from the list of existing terms,
+    or, a new term can be inserted automatically and used as parent term. ");
+  
+  if ($voc->hierarchy == 2) {
+    $auto_description .= t("In multiple hierarchical vocabularies, it's possible to insert more
+      parents in one step by seperating the values with commas.");
+  }
   
   $form['move']['parents'] = array(
     '#type' => 'textfield',
     '#title' => t('Parent term(s)'),
-    '#description' => $help,
+    '#description' => $auto_description,
     '#required' => FALSE,
     '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
   );
@@ -483,7 +507,7 @@ function taxonomy_manager_move_form($voc) {
   $options = array();
   
   if ($voc->hierarchy == 2) {
-    $options['keep_old_parents'] = t('Don\'t delete old parents, only add new parents (multiple parents)');
+    $options['keep_old_parents'] = t('Keep old parents and add new ones (multi-parent). Otherwise old parents get replaced.');
   }
   
   if (count($options) > 0) {
@@ -721,7 +745,7 @@ function taxonomy_manager_form_validate($form_id, $form_values) {
       }
       
       if (count($selected_tids) < 1) {
-        form_set_error('merge', t("No terms for merging selected"));
+        form_set_error('merge', t("Please selected terms you want to merge"));
       }
       else if (count($selected_tids) > 50) {
         form_set_error('merge', t("Please select less than 50 terms to merge. Merging to many terms in one step can cause timeouts and inconsistent database states"));
@@ -730,7 +754,7 @@ function taxonomy_manager_form_validate($form_id, $form_values) {
     
     case t('Move'): 
       if (count($selected_tids) < 1) {
-        form_set_error('move', t("No terms for moving selected"));
+        form_set_error('move', t("Please selected terms you want to move in the hierarchy"));
       }
       break;
   }
