@@ -112,7 +112,6 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
   drupal_add_js($module_path .'js/termData.js');
   drupal_add_js('misc/textarea.js');  //because of term data form wich gets dynamically loaded
   
-  
   drupal_add_js(array('termData' => array('url' => url("admin/content/taxonomy_manager/termdata/edit/". $vid), 'tid' => $tid, 'term_url' => url(taxonomy_manager_tree_link($vid) .'/'. $tid .'/true'))), 'setting');
   drupal_add_js(array('updateWeight' => array('up' => 'edit-weight-up', 'down' => 'edit-weight-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid))), 'setting');
   
@@ -139,16 +138,6 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
     $form += taxonomy_manager_add_form(false);
     return $form;
   }
-  
-  if ($filter) {
-    $searched_terms = array();
-    $searched_terms = taxonomy_manager_autocomplete_tags_get_tids($filter, $vid, FALSE);
-    if (count($searched_terms) >= 1) {
-      $searched_term_info = array_shift($searched_terms);
-      $tid = $searched_term_info['tid'];
-    }
-  }
-  
   
   $form['taxonomy']['#tree'] = TRUE;
   
@@ -757,7 +746,16 @@ function taxonomy_manager_form_submit($form_id, $form_values) {
   switch ($form_values['op']) {
     case t('Search'): 
       $search_string = $form_values['search']['field'];
-      drupal_goto('admin/content/taxonomy_manager/'. $form_values['vid'] .'/0/'. $search_string);
+      $terms = array();
+      $terms = taxonomy_manager_autocomplete_tags_get_tids($search_string, $form_values['vid'], FALSE);
+      $term = array_shift($terms);
+      $tid = $term['tid'];
+      if ($tid) {
+        drupal_goto('admin/content/taxonomy_manager/'. $form_values['vid'] .'/'. $tid);
+      }
+      else {
+        drupal_goto('admin/content/taxonomy_manager/'. $form_values['vid'] .'/0/'. $search_string);
+      }
       break;
 
     case t('Delete'):

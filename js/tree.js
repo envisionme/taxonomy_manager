@@ -13,6 +13,7 @@ if (Drupal.jsEnabled) {
         var ul = $('#'+ settings['id']).find("ul");
         Drupal.attachTreeview(ul);
         Drupal.attachThrobber();
+        
       }
     }
   });
