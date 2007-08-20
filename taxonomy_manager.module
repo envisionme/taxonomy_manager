@@ -83,6 +83,20 @@ function taxonomy_manager_menu($may_cache) {
 }
 
 /**
+ * Implementation of hook_help().
+ */
+function taxonomy_manager_help($section) {
+  switch ($section) {
+    case 'admin/help#taxonomy_manager':
+      $output = t('The Taxonomy Manager provides an additional interface for managing vocabularies of the taxonomy module. It\'s especially very useful for long sets of terms. 
+                   The vocabulary is represented in a dynamic tree view. 
+                   It supports operation like mass adding and deleting of terms, fast weight editing, moving of terms in hierarchies, merging of terms and fast term data editing.
+                   For more information on how to use please read the readme file included in the taxonomy_manager directory.'); 
+      return $output;
+  }
+}
+
+/**
  * list of vocabularies, which link to Taxonomy Manager interface
  */
 function taxonomy_manager_voc_list() {
@@ -158,9 +172,8 @@ function taxonomy_manager_form($vid, $tid = 0, $filter = NULL) {
     '#search_string' => ($tid) ? NULL : $filter,
   );
   
-  $search_description = t("This search allows you to directly select an existing term for 
-    editing. Else, if your input doesn't contain an existing term, the value will be used
-    for filtering root level terms (but this doesn't affect any child term).");
+  $search_description = t("You can search directly for exisiting terms. 
+      If your input doesn't match an existing term, it will be used for filtering root level terms (useful for non-hierarchical vocabularies).");
   
   $form['search'] = array(  
     '#type' => 'fieldset',
@@ -350,10 +363,7 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   
   $description = "";
   if ($voc->hierarchy >= 1) {
-    $description = t("New inserted terms get automatically children of the selected term in the tree structure, if there are any selected.");
-  }
-  if ($voc->hierarchy == 2) {
-    $description .= t(" In multiple hierarchical vocabularies it's possbile to selected more terms as parent (multi-parent).");
+    $description = t("If you have selected one or more terms in the tree view, the new terms are automatically children of those.");
   }
   
   $form['add'] = array( 
@@ -398,10 +408,9 @@ function taxonomy_manager_merge_form($voc) {
   
   $form = array();
   
-  $description .= t("Selected terms can get merged into another term (called main term). 
-    All term - node association of merged terms will be transfered to the main term.
-    Additional, names of merged terms get synonyms of the main term. 
-    Afterwards all merged terms will be deleted automatically.");
+  $description .= t("The selected terms get merged into one term. 
+    This merged term can either be an exisiting term or a completely new term. 
+    The selected terms will automatically get synomyms of the merged term and will be deleted afterwards.");
   
   $form['merge'] = array( 
     '#type' => 'fieldset',
@@ -412,13 +421,9 @@ function taxonomy_manager_merge_form($voc) {
     '#suffix' => '</div>', 
   );
   
-  $auto_description = t("The main term can be either choosen from the list of existing terms,
-    or, a new term can be inserted automatically and used as main term");
-  
   $form['merge']['main_term'] = array(
     '#type' => 'textfield',
-    '#title' => t('Main term'),
-    '#description' => $auto_description,
+    '#title' => t('Merged term'),
     '#required' => FALSE,
     '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
   );
@@ -428,16 +433,16 @@ function taxonomy_manager_merge_form($voc) {
   switch ($voc->hierarchy) {
     //multiple hierarchy 
     case 2:  
-      $options['collect_parents'] = t('Collect all parents of merged terms an add it to main term');
+      $options['collect_parents'] = t('Collect all parents of selected terms an add it to the merged term');
     
     //single hierarchy 
     case 1:  
-      $options['collect_children'] = t('Collect all children of merged terms an add it to main term');
+      $options['collect_children'] = t('Collect all children of selected terms an add it to the merged term');
     break;
   }
   
   if ($voc->relations) {
-    $options['collect_relations'] = t('Collect all relations of merged terms and add it to main term');
+    $options['collect_relations'] = t('Collect all relations of selected terms an add it to the merged term');
   }
   
   if (count($options) > 0) {
@@ -475,9 +480,8 @@ function taxonomy_manager_move_form($voc) {
   
   $form = array();
   
-  $description = t("This operation allows the changing of the hierarchies by moving of selected
-    terms from one parent to another. If you want to move terms back to the root level, 
-    simple leave the autocomplete field below empty.");
+  $description = t("You can change the parent of one or more selected terms. 
+      If you leave the autocomplete field empty, the term will be a root term.");
   
   $form['move'] = array( 
     '#type' => 'fieldset',
@@ -488,12 +492,8 @@ function taxonomy_manager_move_form($voc) {
     '#suffix' => '</div>',
   );
   
-  $auto_description = t("The parent term can be either choosen from the list of existing terms,
-    or, a new term can be inserted automatically and used as parent term. ");
-  
   if ($voc->hierarchy == 2) {
-    $auto_description .= t("In multiple hierarchical vocabularies, it's possible to insert more
-      parents in one step by seperating the values with commas.");
+    $auto_description .= t("Separate parent terms with a comma. ");
   }
   
   $form['move']['parents'] = array(
