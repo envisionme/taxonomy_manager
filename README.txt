@@ -6,8 +6,8 @@ README - TAXONOMY MANAGER
 
 SHORT PROJECT DESCRIPTION
 --------------------------
-This module provides an powerful interface for managing vocabularies of the taxonomy module.
-It's especially for long sets of vocabularies very useful.
+This module provides a powerful interface for managing vocabularies of the taxonomy module.
+It's especially very useful for long sets of vocabularies.
 
 Features:
   * dynamic tree view
@@ -52,8 +52,8 @@ The following lines describe all operations and some terminology.
  - Tree View
      The tree view shows all terms of the vocabulary with their hierarchical relations. If your
      list of terms gets very long, there is a paging mechanism included with a page size of 50 terms. 
-     If you are having hierarchical vocabularies, all parent terms get have a plus symbol, which 
-     means you can expand them to show their children terms. Use the minus symbol to collapse
+     If you are having hierarchical vocabularies, all parent terms have a plus symbol, which 
+     means you can expand them to show their child terms. Use the minus symbol to collapse
      them again.
      In multiple hierarchies, if one term has more parents, the term gets shown under 
      each of its parents. 
@@ -64,16 +64,15 @@ The following lines describe all operations and some terminology.
      To insert a new term, fill in any textfield. Each textfield can only contain one term. 
      You don't have to fill in all textfields, they can be left empty. 
      Depending on your hierarchy settings, it's possible to insert terms and to directly assign 
-     a parent to them (they get child terms). If you want to do this, select a parent term in the 
-     tree view by marking the checkbox. If you have multiple hierarchies enabled, it's even
-     possible to assign the new inserted terms to more parents at once by selecting more terms 
-     in the tree view.
+     a parent to them. If you want to do this, select a parent term in the tree view by marking 
+     the checkbox. If you have multiple hierarchies enabled, it's even possible to assign the 
+     new inserted terms to more parents at once by selecting more terms in the tree view.
      
  - Weight Editing
      Every term has a weight. This weight determines the position the terms get listed. If terms
      have the same weight, they are ordered alphabetically. 
      If you want to change the weight, you have 3 ways to do that.
-       1st way: select the terms you want to move by one plosition (can be more terms at once) and press
+       1st way: select the terms you want to move by one position (can be more terms at once) and press
                 either the up or the down button in the toolbar. All saving is done automatically through 
                 AJAX.
        2nd way: every term in tree view has a mouseover effect. When you move your mouse over a term, two
@@ -95,8 +94,7 @@ The following lines describe all operations and some terminology.
 
  - Moving
      This operation is only available in hierarchical (single or multiple) vocabularies. It allows
-     you to change hierarchies by moving terms from one parent to one other. Of course it's possible
-     to move terms from the root level (they have no parent) under a parent term and the other way round.
+     you to change hierarchies by moving terms from one parent to one other.
      Select all terms you want to move by marking the checkbox. Click the 'Move' button. A fieldset with
      some options expands.
      This fielset contains a autocomplete field, where you have to determine the parent term (under which
@@ -158,6 +156,7 @@ The following lines describe all operations and some terminology.
      At the top of the page, there is a collapsed fieldset, called 'Search'. This search allows you to 
      directly select an existing term for editing. Else, if your input doesn't match an existing term, 
      the value will be used for filtering root level terms (this doesn't affect any child term).
+
 
 
 AUTHOR
