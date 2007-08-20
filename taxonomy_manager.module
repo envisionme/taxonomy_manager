@@ -409,7 +409,7 @@ function taxonomy_manager_merge_form($voc) {
   $form = array();
   
   $description .= t("The selected terms get merged into one term. 
-    This merged term can either be an exisiting term or a completely new term. 
+    This resulting merged term can either be an exisiting term or a completely new term. 
     The selected terms will automatically get synomyms of the merged term and will be deleted afterwards.");
   
   $form['merge'] = array( 
@@ -423,7 +423,7 @@ function taxonomy_manager_merge_form($voc) {
   
   $form['merge']['main_term'] = array(
     '#type' => 'textfield',
-    '#title' => t('Merged term'),
+    '#title' => t('Resulting merged term'),
     '#required' => FALSE,
     '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
   );

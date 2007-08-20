@@ -6,20 +6,18 @@ README - TAXONOMY MANAGER
 
 SHORT PROJECT DESCRIPTION
 --------------------------
-This module provides an additional powerful for managing vocabularies of the taxonomy module.
+This module provides an powerful interface for managing vocabularies of the taxonomy module.
 It's especially for long sets of vocabularies very useful.
 
 Features:
   * dynamic tree view
-  * deleting of selected terms
+  * mass deleting
   * mass adding of new terms
   * moving of terms in hierarchies
   * merging of terms
   * fast weight changing with up and down arrows (and AJAX saving)
   * AJAX powered term editing form
   * simple search interface
-
-
 
 
 REQUIREMENTS
@@ -47,15 +45,17 @@ terms.
 If you want to edit any general vocabulary settings or if you want to create a new one, go to 
 the categories (administer > content management > categories) page.
 
+The interface contains a search bar, a toolbar with some operations, a tree view and if a term
+gets selected a form for editing the term data.
+The following lines describe all operations and some terminology.
 
  - Tree View
      The tree view shows all terms of the vocabulary with their hierarchical relations. If your
-     term list gets very long, there is a paging mechanism included with a page size of 50 terms. 
-     If you are having hierarchical vocabularies, all parent terms get have a plus sign, which 
-     means you can expand them to show their children terms. If any children terms has again some
-     children terms assigned, you can expanded them (and so on). Use the minus symbol to collapse
+     list of terms gets very long, there is a paging mechanism included with a page size of 50 terms. 
+     If you are having hierarchical vocabularies, all parent terms get have a plus symbol, which 
+     means you can expand them to show their children terms. Use the minus symbol to collapse
      them again.
-     In multiple hierarchies, if you are having terms with more parents, the term gets shown under 
+     In multiple hierarchies, if one term has more parents, the term gets shown under 
      each of its parents. 
      
  - Adding of terms
@@ -64,19 +64,19 @@ the categories (administer > content management > categories) page.
      To insert a new term, fill in any textfield. Each textfield can only contain one term. 
      You don't have to fill in all textfields, they can be left empty. 
      Depending on your hierarchy settings, it's possible to insert terms and to directly assign 
-     a parent to them (they get child terms). If you want to do this, select a parent in the 
-     tree structure by marking the checkbox. If you have multiple hierarchies enabled, it's even
+     a parent to them (they get child terms). If you want to do this, select a parent term in the 
+     tree view by marking the checkbox. If you have multiple hierarchies enabled, it's even
      possible to assign the new inserted terms to more parents at once by selecting more terms 
-     in the tree structure.
+     in the tree view.
      
  - Weight Editing
      Every term has a weight. This weight determines the position the terms get listed. If terms
      have the same weight, they are ordered alphabetically. 
      If you want to change the weight, you have 3 ways to do that.
-       1st way: select the terms you want to move one place up (can be more at once) and press
-                either the up or the down button in the toolbar. Every selected terms gets
-                moved exactly one position. All saving is done automatically through AJAX.
-       2nd way: every term in tree view has a mouseover effect. When you hover over a term, two
+       1st way: select the terms you want to move by one plosition (can be more terms at once) and press
+                either the up or the down button in the toolbar. All saving is done automatically through 
+                AJAX.
+       2nd way: every term in tree view has a mouseover effect. When you move your mouse over a term, two
                 small up and down arrows will appear. Click them to move this term by one
                 position.
        3rd way: click on the term, where you want to change the weight. A form for editing the 
@@ -88,7 +88,7 @@ the categories (administer > content management > categories) page.
  - Deleting
      If you want to delete terms from the vocabulary, select them by marking the checkbox and click
      the 'Delete' button. A fieldset, where you have to confirm the deletion, expands. 
-     For hierarchical vocabularies (single or multi), the fieldset contains a option, which says:
+     For hierarchical vocabularies (single or multi), the fieldset contains an option, which says:
      'Delete children of selected, if there are any'. Check this if you want to delete all children 
      of a selected parent term. Otherwise, if you are deleting the last parent of terms, the terms
      get added to root level.
@@ -111,17 +111,21 @@ the categories (administer > content management > categories) page.
  - Merging
      With the merging action, you can put terms with the same meaning together (e.g. your vocabulary
      contains: SoC, Summer of Code, GSoC, Google Summer of Code). All terms, that get merged into 
-     one other, get synonyms of the term, they are merged into (here called the main term). Additional
-     all term-node association gets automatically updated (this means nodes, that had a merged term
-     assigned, now get the main term instead). All merged terms are deleted afterwards. 
+     one other, get synonyms of resulting term (here called merged or main term). Additional
+     all term-node association gets automatically updated (this means nodes, that had a merging term
+     assigned, now get the resulting merged term instead). All merging terms are deleted afterwards. 
      In the Taxonomy Manager, you can do that by selecting all terms you want to merge and to click
      the 'Merge' button. A fieldset with an autocomplete field an some options expands. In the 
-     autocomplete field you have to specify the main term (into which the selected get merged). The
-     main term can be either chosen from the list of existing terms or can be inserted automatically
-     and used as main term.
+     autocomplete field you have to specify the resulting merged term (into which the selected get merged). 
+     The merged term can be either chosen from the list of existing terms or can be inserted automatically
+     and used as merged term.
      Additional, there are some options available (they depend on the vocabulary settings). If you want
-     to add any kind of relations (parents, children, related terms) from the merged terms to the
-     main term, select one (or more) of them.
+     to add any kind of relations (parents, children, related terms) from the merging terms to the
+     resulting merged term, select one (or more) of them.
+     
+     The default taxonomy term page, which shows all assigned nodes, is overriden by the Taxonomy
+     Manager, so that former merged terms can be considered (if someone calls a term, that was merged, 
+     it redirects to the resulting merged term).
      
      NOTE: At the moment, the Taxonomy Manager only cares about the term-node association inserted
            into the term_node table (by the taxonomy module). If you are using any CCK modules, like 
@@ -130,7 +134,7 @@ the categories (administer > content management > categories) page.
            If you are using Views filters instead of the default taxonomy term page, merged terms are 
            either respected.
            If you want to customize this by yourself or have some other module, you can use following 
-           functiontaxonomy_manager_merge_get_main_term($tid) for getting the main term id (if there 
+           function taxonomy_manager_merge_get_main_term($tid) for getting the main term id (if there 
            is any main term, else return 0). The term merge history gets saved in the 
            taxonomy_manager_merge table (main_tid, merged_tid) and gets additional cached, so that 
            checking for a merged terms causes nearly no performance loss.
@@ -140,21 +144,20 @@ the categories (administer > content management > categories) page.
      of the tree view gets loaded. This contains all term related information and can be edited. If you
      want to change the term name or the description, fill in any changes you want and click the saving 
      symbol. All saving is done through AJAX, so no reload is necessary.
-     Additional, this page contains listing of synonyms, related terms and parents (depends of course on
-     your vocabulary settings). 
+     Additional, this page contains listing of synonyms, related terms and parents (depends on your 
+     vocabulary settings). 
      Every listed entry has an delete operation. By clicking the delete symbol, the relation gets deleted.
      In case of synonyms, the names get deleted from the database. If you are deleting a related term or a 
      parent, this doesn't delete the term itself, only the relation. 
      For adding new synonyms, the listing has a textfield below. Insert there any new synonym and click the 
      plus symbol.
      For adding a new related term or a new parent (if multi hierarchy), there is a autocomplete field below
-     the listing. Use this inserted new terms and use them as related term / parent or assign existing
-     terms. 
+     the listing. Use this to insert new terms or to choose existing ones and assign them to the current term. 
  
  - Using the search
      At the top of the page, there is a collapsed fieldset, called 'Search'. This search allows you to 
-     directly select an existing term for editing. Else, if your input doesn't contain an existing term, 
-     the value will be used for filtering root level terms (but this doesn't affect any child term).
+     directly select an existing term for editing. Else, if your input doesn't match an existing term, 
+     the value will be used for filtering root level terms (this doesn't affect any child term).
 
 
 AUTHOR
