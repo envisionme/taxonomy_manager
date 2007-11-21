@@ -941,7 +941,7 @@ function taxonomy_manager_term_data_edit($vid) {
  * @return true, if terms already exists, else false
  */
 function _taxonomy_manager_voc_is_empty($vid) {
-  $count = db_result(db_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 LIMIT 0,1", $vid));
+  $count = db_result(db_query_range("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0", $vid, 0, 1));
   if ($count == 0) return true;
   return false;
 }
@@ -1016,7 +1016,7 @@ function taxonomy_manager_move($parents, $children, $options = array()) {
       db_query("DELETE FROM {term_hierarchy} WHERE tid = %d", $child);
     }
     foreach ($parents as $parent) {
-      db_query("INSERT INTO {term_hierarchy} SET parent = %d, tid = %d", $parent, $child);
+      db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (%d, %d)", $parent, $child);
     }
   }
 }
