@@ -25,7 +25,7 @@ if (Drupal.jsEnabled) {
  * adds click events to the term links in the tree structure
  */
 Drupal.attachTermData = function(ul) {
-  $('a.term-data-link').click(function() {
+  $(ul).find('a.term-data-link').click(function() {
     var li = $(this).parents("li");
     var tid = Drupal.getTermId(li);
     Drupal.termDataLoad(this.href, tid, li);
