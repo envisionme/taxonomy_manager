@@ -44,7 +44,7 @@ Drupal.attachHideForm = function(div, show_button, hide_button) {
   }
   
   $(show_button).click(function() {
-    $(div).show();
+    $(div).toggle();
   });
   
   $(hide_button).click(function() {

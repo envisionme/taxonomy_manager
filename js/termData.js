@@ -54,17 +54,17 @@ Drupal.termDataLoad = function(href, tid, li) {
   $.get(url, null, function(data) {
     var div = $('#taxonomy-term-data');
     $(div).html(data);
-    Drupal.termDataForm(tid, href, li);
+    Drupal.termDataForm(tid, href, li, div);
   });
 }
 
 /**
  * adds events to possible operations
  */
-Drupal.termDataForm = function(tid, href, li) {
+Drupal.termDataForm = function(tid, href, li, div) {
   try {
-    Drupal.autocompleteAutoAttach();
-    Drupal.textareaAttach();
+    Drupal.behaviors.textarea(div);
+    Drupal.behaviors.autocomplete(div);
   } catch(e) {} //autocomplete or textarea js not added to page
   
   var param = new Object();

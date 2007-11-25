@@ -25,7 +25,7 @@ if (Drupal.jsEnabled) {
 Drupal.attachTreeview = function(ul) {
   $(ul)
     .addClass("treeview")
-    .find("li[ul]").prepend("<div class='hitArea'/>").find("ul").hide().end()
+    .find("li:has(ul)").prepend("<div class='hitArea'/>").find("ul").hide().end()
     .find("div.hitArea").click(function() {
       Drupal.toggleTree(this);
     });

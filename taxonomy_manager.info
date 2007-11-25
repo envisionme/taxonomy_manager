@@ -1,5 +1,5 @@
 ; $Id$
 name = Taxonomy Manager
 description = Tool for administrating taxonomy terms.
-version = VERSION
-dependencies = taxonomy
+core = "6.x"
+dependencies[] = taxonomy
