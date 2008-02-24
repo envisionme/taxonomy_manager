@@ -4,23 +4,20 @@
  * @files js for collapsible tree view with some helper functions for updating tree structure
  */
 
-//global killswitch
-if (Drupal.jsEnabled) {
-  $(document).ready(function() {
-    var settings = Drupal.settings.taxonomytree || [];
-    if (settings['id']) {
-      if (!(settings['id'] instanceof Array)) {
-        var ul = $('#'+ settings['id']).find("ul");
-        Drupal.attachTreeview(ul);
-        Drupal.attachThrobber();
-        
-      }
+
+Drupal.behaviors.TaxonomyManagerTree = function(context) {
+  var settings = Drupal.settings.taxonomytree || [];
+  if (settings['id']) {
+    if (!(settings['id'] instanceof Array)) {
+      var ul = $('#'+ settings['id']).find("ul");
+      Drupal.attachTreeview(ul);
+      Drupal.attachThrobber();
     }
-  });
+  }
 }
 
 /**
- * adds collapsibel treeview to a given list
+ * adds collapsible treeview to a given list
  */
 Drupal.attachTreeview = function(ul) {
   $(ul)

@@ -5,10 +5,8 @@
  */
  
 //global killswitch
-if (Drupal.jsEnabled) {
-  $(document).ready(function() {
-    Drupal.attachSiblingsForm();  
-  })
+Drupal.behaviors.TaxonomyManagerSiblingsForm = function(context) {
+  Drupal.attachSiblingsForm();  
 }
 
 /**

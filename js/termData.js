@@ -4,21 +4,18 @@
  * @file js support for term editing form for ajax saving and tree updating
  */
 
-//global killswitch
-if (Drupal.jsEnabled) {
-  $(document).ready(function() {
-    //use tree settings....
-    var settings = Drupal.settings.taxonomytree || [];
-    if (settings['id']) {
-      if (!(settings['id'] instanceof Array)) {
-        if (Drupal.settings.termData['tid']) {
-          Drupal.termDataForm(Drupal.settings.termData['tid'], Drupal.settings.termData['term_url']);
-        }
-        var ul = $('#'+ settings['id']).find("ul");
-        Drupal.attachTermData(ul);
+Drupal.behaviors.TaxonomyManagerTermData = function(context) {
+  //use tree settings....
+  var settings = Drupal.settings.taxonomytree || [];
+  if (settings['id']) {
+    if (!(settings['id'] instanceof Array)) {
+      if (Drupal.settings.termData['tid']) {
+        Drupal.termDataForm(Drupal.settings.termData['tid'], Drupal.settings.termData['term_url']);
       }
+      var ul = $('#'+ settings['id']).find("ul");
+      Drupal.attachTermData(ul);
     }
-  });
+  }
 }
 
 /**
@@ -139,10 +136,10 @@ Drupal.termDataUpdate = function(li, tid, href, param) {
   }
   else if (param['attr_type'] == 'weight') {
     var parentLi = $(li).parents("li");
-    try {
-      parentLi.attr("id");
+    if ($(parentLi).is("li")) {
       Drupal.loadChildForm(parentLi, true);
-    } catch (e) {
+    }
+    else {
       //no parent li --> root level terms
       //load whole Tree
       Drupal.loadRootForm();

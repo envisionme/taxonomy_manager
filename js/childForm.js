@@ -4,11 +4,8 @@
  *@file generates nested children terms, which are loaded through ahah
  */
 
-//global killswitch
-if (Drupal.jsEnabled) {
-  $(document).ready(function() {
-    Drupal.attachChildForm();  
-  });
+Drupal.behaviors.TaxonomyManagerChildForm = function(context) {
+  Drupal.attachChildForm();  
 }
 
 /**

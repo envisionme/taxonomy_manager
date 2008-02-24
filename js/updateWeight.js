@@ -7,13 +7,10 @@
 //object to store weights (tid => weight)
 var weights = new Object();
 
-//global killswitch
-if (Drupal.jsEnabled) {
-  $(document).ready(function() {
-    var settings = Drupal.settings.updateWeight || [];
-    Drupal.attachUpdateWeightToolbar(settings['up'], settings['down']);
-    Drupal.attachUpdateWeightTerms();     
-  });
+Drupal.behaviors.TaxonomyManagerWeights = function(context) {
+  var settings = Drupal.settings.updateWeight || [];
+  Drupal.attachUpdateWeightToolbar(settings['up'], settings['down']);
+  Drupal.attachUpdateWeightTerms();     
 }
 
 /**
@@ -57,68 +54,73 @@ Drupal.attachUpdateWeightToolbar = function(upButton, downButton) {
  * arrows get displayed on mouseover
  */
 Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
-  var url = Drupal.settings.updateWeight['url'];
+  var settings = Drupal.settings.updateWeight || [];
+  var disable = settings['disable_mouseover'];
+ 	 
+  if (!disable) {
+    var url = Drupal.settings.updateWeight['url'];
   
-  var termArrowsClass = '.term-operations';
-  var termLineClass = '.term-line';
-  var termUpClass = '.term-up';
-  var termDownClass = '.term-down';
+    var termArrowsClass = '.term-operations';
+    var termLineClass = '.term-line';
+    var termUpClass = '.term-up';
+    var termDownClass = '.term-down';
   
-  if (parent && currentIndex) {
-    parent = parent.gt(currentIndex);
+    if (parent && currentIndex) {
+      parent = parent.gt(currentIndex);
+    }
+    if (parent) {
+      termArrowsClass = $(parent).find(termArrowsClass);
+      termLineClass = $(parent).find(termLineClass);
+      termUpClass = $(parent).find(termUpClass);
+      termDownClass = $(parent).find(termDownClass);
+    }
+  
+    $(termArrowsClass).hide();
+  
+    $(termLineClass).mouseover(function() {
+      $(this).find('.term-operations').show();
+    });
+  
+    $(termLineClass).mouseout(function() {
+      $(this).find('.term-operations').hide();
+    });
+  
+  
+    $(termUpClass).click(function() {
+      var upTerm = $(this).parents("li").eq(0);
+      var downTerm = $(upTerm).prev(); 
+    
+      Drupal.orderTerms(upTerm, downTerm);
+      $.post(url, weights);
+    
+      $(downTerm).find(termLineClass).unbind('mouseover');
+      setTimeout(function() {
+        $(upTerm).find('.term-operations').hide();
+        $(downTerm).find(termLineClass).mouseover(function() {
+          $(this).find('.term-operations').show();
+        });
+      }, 1500);
+    
+    });
+  
+  
+    $(termDownClass).click(function() {
+      var downTerm = $(this).parents("li").eq(0);
+      var upTerm = $(downTerm).next();
+    
+      Drupal.orderTerms(upTerm, downTerm);
+      $.post(url, weights);
+    
+      $(upTerm).find(termLineClass).unbind('mouseover');
+      setTimeout(function() {
+        $(downTerm).find('.term-operations').hide();
+        $(upTerm).find(termLineClass).mouseover(function() {
+          $(this).find('.term-operations').show();
+        });
+      }, 1500);
+    
+    });
   }
-  if (parent) {
-    termArrowsClass = $(parent).find(termArrowsClass);
-    termLineClass = $(parent).find(termLineClass);
-    termUpClass = $(parent).find(termUpClass);
-    termDownClass = $(parent).find(termDownClass);
-  }
-  
-  $(termArrowsClass).hide();
-  
-  $(termLineClass).mouseover(function() {
-    $(this).find('.term-operations').show();
-  });
-  
-  $(termLineClass).mouseout(function() {
-    $(this).find('.term-operations').hide();
-  });
-  
-  
-  $(termUpClass).click(function() {
-    var upTerm = $(this).parents("li").eq(0);
-    var downTerm = $(upTerm).prev(); 
-    
-    Drupal.orderTerms(upTerm, downTerm);
-    $.post(url, weights);
-    
-    $(downTerm).find(termLineClass).unbind('mouseover');
-    setTimeout(function() {
-      $(upTerm).find('.term-operations').hide();
-      $(downTerm).find(termLineClass).mouseover(function() {
-        $(this).find('.term-operations').show();
-      });
-    }, 1500);
-    
-  });
-  
-  
-  $(termDownClass).click(function() {
-    var downTerm = $(this).parents("li").eq(0);
-    var upTerm = $(downTerm).next();
-    
-    Drupal.orderTerms(upTerm, downTerm);
-    $.post(url, weights);
-    
-    $(upTerm).find(termLineClass).unbind('mouseover');
-    setTimeout(function() {
-      $(downTerm).find('.term-operations').hide();
-      $(upTerm).find(termLineClass).mouseover(function() {
-        $(this).find('.term-operations').show();
-      });
-    }, 1500);
-    
-  });
 
 }
 

@@ -4,23 +4,18 @@
  * @file shows / hides form elements
  */
  
-// global killswitch
-if (Drupal.jsEnabled) {
-  $(document).ready(function() {
-    var settings = Drupal.settings.hideForm || [];
-    
-    if (settings['div']) {
-      if (!(settings['div'] instanceof Array)) {
-        Drupal.attachHideForm(settings['div'], settings['show_button'], settings['hide_button']);
-      }
-      else {
-        for (var i=0; i<settings['div'].length; i++) {
-          Drupal.attachHideForm(settings['div'][i], settings['show_button'][i], settings['hide_button'][i]); 
-        }
+Drupal.behaviors.TaxonomyManagerHideForm = function(context) {
+  var settings = Drupal.settings.hideForm || [];
+  if (settings['div']) {
+    if (!(settings['div'] instanceof Array)) {
+      Drupal.attachHideForm(settings['div'], settings['show_button'], settings['hide_button']);
+    }
+    else {
+      for (var i=0; i<settings['div'].length; i++) {
+        Drupal.attachHideForm(settings['div'][i], settings['show_button'][i], settings['hide_button'][i]); 
       }
     }
-     
-  })
+  }
 }
 
 /**
