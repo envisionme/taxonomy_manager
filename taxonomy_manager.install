@@ -10,6 +10,13 @@ function taxonomy_manager_install() {
 }
 
 /**
+ * Implementation of hook_uninstall
+ */
+function taxonomy_manager_uninstall() {
+  drupal_uninstall_schema('taxonomy_manager');
+}
+
+/**
  * Implementation of hook_schema()
  */
 function taxonomy_manager_schema() {

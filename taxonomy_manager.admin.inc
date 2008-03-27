@@ -240,10 +240,10 @@ function taxonomy_manager_confirm_delete($voc) {
  */
 function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   if ($hide_form) {
-    /*drupal_add_js(array('hideForm' => array(
+    drupal_add_js(array('hideForm' => array(
       'show_button' => 'edit-add-show', 
       'hide_button' => 'edit-add-cancel', 
-      'div' => 'add-form')), 'setting');*/
+      'div' => 'add-form')), 'setting');
   }
   
   $form = array();
@@ -370,20 +370,9 @@ function taxonomy_manager_merge_form($voc) {
   
   $options = array();
   
-  switch ($voc->hierarchy) {
-    //multiple hierarchy 
-    case 2:  
-      $options['collect_parents'] = t('Collect all parents of selected terms an add it to the merged term');
-    
-    //single hierarchy 
-    case 1:  
-      $options['collect_children'] = t('Collect all children of selected terms an add it to the merged term');
-    break;
-  }
-  
-  if ($voc->relations) {
-    $options['collect_relations'] = t('Collect all relations of selected terms an add it to the merged term');
-  }
+  $options['collect_parents'] = t('Collect all parents of selected terms an add it to the merged term'); 
+  $options['collect_children'] = t('Collect all children of selected terms an add it to the merged term');
+  $options['collect_relations'] = t('Collect all relations of selected terms an add it to the merged term');
   
   if (count($options) > 0) {
     $form['merge']['options'] = array( 
@@ -447,18 +436,12 @@ function taxonomy_manager_move_form($voc) {
   );
   
   $options = array();
-  
-  if ($voc->hierarchy == 2) {
-    $options['keep_old_parents'] = t('Keep old parents and add new ones (multi-parent). Otherwise old parents get replaced.');
-  }
-  
-  if (count($options) > 0) {
-    $form['move']['options'] = array( 
-      '#type' => 'checkboxes', 
-      '#title' => t('Options'), 
-      '#options' => $options, 
-    );
-  }
+  $options['keep_old_parents'] = t('Keep old parents and add new ones (multi-parent). Otherwise old parents get replaced.');
+  $form['move']['options'] = array( 
+    '#type' => 'checkboxes', 
+    '#title' => t('Options'), 
+    '#options' => $options, 
+  );
   
   $form['move']['submit'] = array( 
     '#type' => 'submit',
@@ -497,6 +480,7 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE) {
   $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
   
   $form = taxonomy_manager_form_term_data($tid);
+  drupal_prepare_form('taxonomy_manager_form', $form, $form_state);
   $form = form_builder('taxonomy_manager_form', $form, $form_state);
   $output = drupal_render($form);
   
@@ -519,6 +503,11 @@ function taxonomy_manager_form_term_data($tid) {
     '#title' => $term->name,
     '#attributes' => array('id' => 'taxonomy-term-data-fieldset'),
     '#tree' => TRUE,
+  );
+  
+  $form['term_data']['tid'] = array(
+    '#type' => 'value', 
+    '#value' => $tid,
   );
   
   $form['term_data']['name'] = array(
@@ -558,20 +547,13 @@ function taxonomy_manager_form_term_data($tid) {
   $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_synonyms($term->tid), t('Synonyms'), 'synonym', FALSE); 
   $form['term_data']['synonyms']['#tree'] = TRUE;
   
-  if ($vocabulary->relations) {
-    $form['term_data']['relations'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_related($term->tid), t('Relations'), 'related'); 
-    $form['term_data']['relations']['#tree'] = TRUE;
-  }
+  $form['term_data']['relations'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_related($term->tid), t('Relations'), 'related'); 
+  $form['term_data']['relations']['#tree'] = TRUE;
   
-  if ($vocabulary->hierarchy) {
-    $parents = taxonomy_get_parents($term->tid);
-    $p_add = TRUE;
-    if ((count($parents) >= 1) && ($vocabulary->hierarchy == 1)) {
-      $p_add = FALSE;
-    }
-    $form['term_data']['parents'] = _taxonomy_manager_form_term_data_lists($term, $parents, t('Parents'), 'parent', TRUE, $p_add); 
-    $form['term_data']['parents']['#tree'] = TRUE;
-  }
+  $parents = taxonomy_get_parents($term->tid);
+  $p_add = TRUE;
+  $form['term_data']['parents'] = _taxonomy_manager_form_term_data_lists($term, $parents, t('Parents'), 'parent', TRUE); 
+  $form['term_data']['parents']['#tree'] = TRUE;
   
   $form['term_data']['weight'] = array( 
     '#type' => 'weight', 
@@ -639,7 +621,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
     }
   
     $form['add_button'] = array( 
-      '#value' => theme("image", $module_path ."images/list-add.png", "term-remove", NULL, array('class' => $attr)), 
+      '#value' => theme("image", $module_path ."images/list-add.png", "add", NULL, array('class' => $attr)), 
       '#prefix' => '<div class="term-data-autocomplete-add">',
       '#suffix' => '</div><div class="clear"></div></div>',
     );
@@ -678,7 +660,7 @@ function taxonomy_manager_form_submit($form, &$form_state) {
 
 /**
  * Validation handler for adding terms
- */
+ *
 function taxonomy_manager_form_add_validate($form, $form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
@@ -692,7 +674,7 @@ function taxonomy_manager_form_add_validate($form, $form_state) {
     form_set_error('add', t('Please only select one term in the list (at maximum) as parent. This vocabulary provides only single hirarchies.'));
   }
   
-}
+}*/
 
 /**
  * Submit handler for adding terms
@@ -827,7 +809,7 @@ function taxonomy_manager_settings() {
  */
 function taxonomy_manager_term_data_edit($vid) {
   $param = $_POST;
-  
+
   $tid = $param['tid'];
   $values = $param['value'];
   $attr_type = $param['attr_type'];
@@ -894,7 +876,7 @@ function taxonomy_manager_term_data_edit($vid) {
       foreach ($values as $value) {
         if ($value != 0) {
           db_query("DELETE FROM {term_relation} WHERE tid1 = %d AND tid2 = %d", $tid, $value);
-          db_query("DELETE FROM {term_relation} WHERE tid2 = %d AND tid1 = %d", $tid, $value);
+        //  db_query("DELETE FROM {term_relation} WHERE tid2 = %d AND tid1 = %d", $tid, $value);
           if ($op == 'add') {
             db_query('INSERT INTO {term_relation} (tid1, tid2) VALUES (%d, %d)', $tid, $value);
           }
@@ -920,7 +902,7 @@ function taxonomy_manager_term_data_edit($vid) {
   }
 
   module_invoke_all('taxonomy', 'update', 'term', (array) taxonomy_get_term($tid));
-  
+  module_invoke_all('taxonomy_manager_term_data_submit', $param, $values);
   exit();
 }
 /**

@@ -66,7 +66,7 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     var termDownClass = '.term-down';
   
     if (parent && currentIndex) {
-      parent = parent.gt(currentIndex);
+      parent = $(parent).slice(currentIndex);
     }
     if (parent) {
       termArrowsClass = $(parent).find(termArrowsClass);
@@ -164,12 +164,12 @@ Drupal.swapTerms = function(upTerm, downTerm) {
 
 /**
  * updating weights of swaped terms
- * if two terms have different weights, then weights are being swaped
+ * if two terms have different weights, then weights are being swapped
  * else, if both have same weights, upTerm gets decreased
  *
  * if prev/next siblings of up/down terms have same weights as current
- * swaped, they have to be updated by de/increasing weight (by 1) to ensure
- * unique position of swaped terms
+ * swapped, they have to be updated by de/increasing weight (by 1) to ensure
+ * unique position of swapped terms
  */
 Drupal.swapWeights = function(upTerm, downTerm) {
   var upWeight = Drupal.getWeight(upTerm);
@@ -187,40 +187,34 @@ Drupal.swapWeights = function(upTerm, downTerm) {
     weights[downTid] = upWeight;
   }
   
-  
-  var updateUpTerms = false;
-  var updateDownTerms = false;
-  
+  //update prev siblings if necessary
   try {
-    if (Drupal.getWeight($(upTerm).prev()) == upWeight) {
-      updateUpTerms = true;
+    if (Drupal.getWeight($(upTerm).prev()) >= upWeight) {
+      $(upTerm).prevAll().each(function() {
+        var id = Drupal.getTermId(this);
+        var weight = Drupal.getWeight(this);
+        weights[id] = --weight;
+      });
     }
   } catch(e) {
     //no prev
   }
   
+  //update next siblings if necessary
   try {
-    if (Drupal.getWeight($(upTerm).next()) == downWeight) {
-      updateDownTerms = true;
+    if (Drupal.getWeight($(downTerm).next()) <= downWeight) {
+      $(downTerm).nextAll().each(function() {
+        var id = Drupal.getTermId(this);
+        var weight = Drupal.getWeight(this);
+        weights[id] = ++weight;
+      });
     }
   } catch(e) {
     //no next
   }
-  
-  //in/decrease all siblings if necessary
-  if (updateUpTerms || updateDownTerms) {
-    $(upTerm).siblings().each(function() {
-      var id = Drupal.getTermId(this);
-      if (id != downTid) {
-        var weight = Drupal.getWeight(this);
-        if (weight <= upWeight && updateUpTerms) {
-          weights[id] = --weight;
-        }
-        else if (weight >= downWeight && updateDownTerms) {
-          weights[id] = ++weight;
-        }
-      }
-    });
+
+  for (var i in weights) {
+    alert(i +": "+ weights[i]);
   }
 }
 

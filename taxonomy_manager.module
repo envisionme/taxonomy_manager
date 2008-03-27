@@ -57,6 +57,7 @@ function taxonomy_manager_menu() {
     'page callback' => 'taxonomy_manager_term_data_edit', 
     'access arguments' => array('administer taxonomy'),
     'type' => MENU_CALLBACK, 
+    'file' => 'taxonomy_manager.admin.inc',
   );
   
   $items['admin/content/taxonomy_manager/voc'] = array(
@@ -279,9 +280,8 @@ function taxonomy_manager_tree_process_elements($element) {
   if (!$element['#parent'] && !$element['#siblings_page']) {
     drupal_add_css($module_path .'css/taxonomy_manager.css');
     drupal_add_js($module_path .'js/tree.js');
-    drupal_add_js($module_path .'js/childForm.js');
-    drupal_add_js($module_path .'js/siblingsForm.js');
     
+    //TODO generalize so that more tree in one form are possible    
     drupal_add_js(array('siblingsForm' => array('url' => url('admin/content/taxonomy_manager/siblingsform'), 'modulePath' => $module_path)), 'setting');
     drupal_add_js(array('childForm' => array('url' => url('admin/content/taxonomy_manager/childform'), 'modulePath' => $module_path)), 'setting');
     drupal_add_js(array('taxonomy_manager' => array('modulePath' => (url($module_path) == $module_path) ? $module_path : (base_path() . $module_path))), 'setting');
@@ -312,7 +312,7 @@ function taxonomy_manager_tree_process_elements($element) {
   $element['#element_validate'] = array('taxonomy_manager_tree_validate');
   
   taxonomy_manager_tree_build_form($index = 0, $tree, $element['#elements'], $element, $element['#parents'], !$element['#pager'], $element['#siblings_page']);
-
+  
   return $element;
 }
 
@@ -526,8 +526,9 @@ function _taxonomy_manager_tree_get_next_siblings_count($vid, $page, $parent = 0
  * @param $parent term id of parent, that is expanded and of which children have to be loaded
  */
 function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) { 
-  $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
-  $form_state = array();
+  $params = $_GET;
+  
+  $form_state = array('submitted' => FALSE);
   
   $child_form = array( 
     '#type' => 'taxonomy_manager_tree', 
@@ -535,7 +536,7 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
     '#parent' => $parent, 
     '#pager' => TRUE,
   );
-  if (!$root_level) {
+  if (!$root_level) { //TODO ?
     $child_form['#siblings_page'] = 1;
   }
   
@@ -551,7 +552,11 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
   
   _taxonomy_manager_tree_sub_forms_set_parents($tree_id, $parent, $child_form);
   
-  $child_form = form_builder('taxonomy_manager_form', $child_form, $form_state);
+  //TODO use caching functions
+  //$form = form_get_cache($param['form_build_id'], $form_state);
+  //form_set_cache($param['form_build_id'], $form, $form_state);
+  
+  $child_form = form_builder($param['form_id'], $child_form, $form_state);
   
   print drupal_render($child_form);
 
@@ -568,7 +573,7 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
  */
 function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $parent = 0) {
   $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
-  $form_state = array();
+  $form_state = array('submitted' => FALSE);
   
   $vid = db_result(db_query("SELECT vid FROM {term_data} WHERE tid = %d", $prev_tid));
     
