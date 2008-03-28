@@ -212,10 +212,6 @@ Drupal.swapWeights = function(upTerm, downTerm) {
   } catch(e) {
     //no next
   }
-
-  for (var i in weights) {
-    alert(i +": "+ weights[i]);
-  }
 }
 
 /**
