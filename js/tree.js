@@ -22,8 +22,12 @@ Drupal.behaviors.TaxonomyManagerTree = function(context) {
       }
     }
   }
-
-  Drupal.attachThrobber(); 
+  
+  //only add throbber for TM sites
+  var throbberSettings = Drupal.settings.TMAjaxThrobber || [];
+  if (throbberSettings['add']) {
+    Drupal.attachThrobber(); 
+  }
 }
 
 
