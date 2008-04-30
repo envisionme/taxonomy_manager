@@ -212,6 +212,7 @@ Drupal.swapWeights = function(upTerm, downTerm) {
   } catch(e) {
     //no next
   }
+
 }
 
 /**

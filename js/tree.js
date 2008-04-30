@@ -5,20 +5,36 @@
  */
 
 Drupal.behaviors.TaxonomyManagerTree = function(context) {
-  $("div#taxonomy-manager-tree").each( function() {
-    new Drupal.TaxonomyManagerTree(this);
-    Drupal.attachThrobber();  //TODO only if TM
-  });
+  var settings = Drupal.settings.taxonomytree || [];
+  var id, vid;
+  
+  if (settings['id']) {
+    if (!(settings['id'] instanceof Array)) {
+       id = settings['id'];
+       vid = settings['vid'];
+       new Drupal.TaxonomyManagerTree(id, vid);
+    }
+    else {
+      for (var i = 0; i < settings['id'].length; i++) {
+        id = settings['id'][i];
+        vid = settings['vid'][i];
+        new Drupal.TaxonomyManagerTree(id, vid); 
+      }
+    }
+  }
+
+  Drupal.attachThrobber(); 
 }
 
 
-Drupal.TaxonomyManagerTree = function(div) {
-  this.ul = $(div).find("ul");
+Drupal.TaxonomyManagerTree = function(id, vid) {
+  this.div = $("div#"+ id);
+  this.ul = $(this.div).find("ul");
   this.form = $(this.ul).parents('form');
   this.form_build_id = $(this.form).find(':input[@name="form_build_id"]').val();
   this.form_id = $(this.form).find(' :input[@name="form_id"]').val();
-  this.treeId = Drupal.settings.taxonomytree['id']; //TODO change this to input hidden to be flexible
-  this.vocId = Drupal.settings.taxonomytree['vid']; 
+  this.treeId = id;
+  this.vocId = vid; 
 
   this.attachTreeview(this.ul);
   this.attachChildForm();
@@ -32,10 +48,12 @@ Drupal.TaxonomyManagerTree.prototype.attachTreeview = function(ul) {
   var tree = this;
   $(ul)
     .addClass("treeview")
-    .find("li:has(ul)").prepend("<div class='hitArea'/>").find("ul").hide().end()
+    .find("li:has(ul)").prepend("<div class='hitArea'/>").end()
     .find("div.hitArea").click(function() {
       tree.toggleTree(this);
     });
+  $(ul).find("li.expandable").find("ul").hide();
+  $(ul).find("li.lastExpandable").find("ul").hide();
 }
 
 /**
@@ -94,7 +112,12 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
   var tree = this;
   if ($(li).is(".has-children") || update == true) {
     var parentId = Drupal.getTermId(li);
-    var url = Drupal.settings.childForm['url'];
+    if (!(Drupal.settings.childForm['url'] instanceof Array)) {
+      url = Drupal.settings.childForm['url'];
+    }
+    else {
+      url = Drupal.settings.childForm['url'][0];
+    }
     url += '/'+ this.treeId +'/'+ this.vocId +'/'+ parentId;
     var param = new Object();
     param['form_build_id'] = this.form_build_id;
@@ -119,7 +142,12 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
  * function for reloading root tree elements
  */
 Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
-  var url = Drupal.settings.childForm['url'];
+  if (!(Drupal.settings.childForm['url'] instanceof Array)) {
+    url = Drupal.settings.childForm['url'];
+  }
+  else {
+    url = Drupal.settings.childForm['url'][0];
+  }
   var tree = this;
   url += '/'+ this.treeId +'/'+ this.vocId +'/0/true';
   $.get(url, null, function(data) {
@@ -140,7 +168,12 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
  */
 Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
   var tree = this;
-  var url = Drupal.settings.siblingsForm['url'];
+  if (!(Drupal.settings.childForm['url'] instanceof Array)) {
+    url = Drupal.settings.siblingsForm['url'];
+  }
+  else {
+    url = Drupal.settings.siblingsForm['url'][0];
+  }
   var list = "li.has-more-siblings div.term-has-more-siblings";
   if (ul) {
     list = $(ul).find(list);

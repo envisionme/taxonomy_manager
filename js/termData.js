@@ -153,7 +153,18 @@ Drupal.TermData.prototype.update = function() {
   if (this.param['op'] == 'add') {
     this.load();
   }
-  var tree = new Drupal.TaxonomyManagerTree($("div#taxonomy-manager-tree"));
+  
+  var settings = Drupal.settings.taxonomytree || [];
+  var id, vid;
+  
+  if (settings['id']) {
+    if (!(settings['id'] instanceof Array)) {
+       id = settings['id'];
+       vid = settings['vid'];
+    }
+  }
+    
+  var tree = new Drupal.TaxonomyManagerTree(id, vid);
  
   if (this.param['attr_type'] == 'parent' || (this.param['attr_type'] == 'related' && this.param['op'] == 'add')) {
     tree.loadRootForm();

@@ -11,7 +11,9 @@ function taxonomy_manager_voc_list() {
   foreach ($vocabularies as $vocabulary) {
     $voc_list[] = l($vocabulary->name, 'admin/content/taxonomy_manager/voc/'. $vocabulary->vid);
   }
-  
+  if (!count($voc_list)) {
+    $voc_list[] = t('No Vocabularies available');
+  }
   return theme('item_list', $voc_list, t("Vocabularies:"));
 }
 
@@ -22,7 +24,7 @@ function taxonomy_manager_voc_list() {
  * @param $tid a term id, if not 0, displays term editing from for given tid on right side
  * @param $search_string a string to filter root level terms
  */
-function taxonomy_manager_form($form_state, $vid, $tid = 0, $filter = NULL) {
+function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   drupal_add_css($module_path .'css/taxonomy_manager.css');
   drupal_add_js($module_path .'js/hideForm.js');
@@ -142,15 +144,12 @@ function taxonomy_manager_form($form_state, $vid, $tid = 0, $filter = NULL) {
     '#theme' => 'no_submit_button',
   );
   
-  //moving is only possible in hierarchies...
-  if ($voc->hierarchy != 0) {
-    $form['toolbar']['move_show'] = array( 
-      '#type' => 'button', 
-      '#value' => t('Move'),
-      '#attributes' => array('class' => 'taxonomy-manager-buttons move'),
-       '#theme' => 'no_submit_button', 
-    );
-  }
+  $form['toolbar']['move_show'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Move'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons move'),
+     '#theme' => 'no_submit_button', 
+   );
   
   $form['toolbar']['merge_show'] = array( 
     '#type' => 'button', 
@@ -205,17 +204,15 @@ function taxonomy_manager_confirm_delete($voc) {
   
   $form['delete']['text'] = array('#value' => "<b>". $question ."</b><br/>". $info);
   
-  if ($voc->hierarchy != 0) {
-    $options = array( 
-      'delete_orphans' => t('Delete children of selected terms, if there are any'), 
-    );
+  $options = array( 
+    'delete_orphans' => t('Delete children of selected terms, if there are any'), 
+  );
      
-    $form['delete']['options'] = array( 
-      '#type' => 'checkboxes', 
-      '#title' => t('Options'), 
-      '#options' => $options, 
-    );
-  }
+  $form['delete']['options'] = array( 
+    '#type' => 'checkboxes', 
+    '#title' => t('Options'), 
+    '#options' => $options, 
+  );
   
   $form['delete']['delete'] = array( 
     '#type' => 'submit', 
@@ -637,6 +634,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
 function taxonomy_manager_form_validate($form, &$form_state) {
   if (empty($form_state['values']['search']['field'])) {
     form_set_error('search', t('Search field is empty'));
+    $form_state['rebuild'] = TRUE;
   }
 }
 
@@ -679,7 +677,7 @@ function taxonomy_manager_form_add_validate($form, $form_state) {
 /**
  * Submit handler for adding terms
  */
-function taxonomy_manager_form_add_submit($form, $form_state) {
+function taxonomy_manager_form_add_submit($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   foreach ($form_state['values']['add']['term'] as $value) {
@@ -698,13 +696,15 @@ function taxonomy_manager_form_add_submit($form, $form_state) {
 /**
  * Validation handler for deleting terms
  */
-function taxonomy_manager_form_delete_validate($form, $form_state) {
+function taxonomy_manager_form_delete_validate($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   
   if (count($selected_tids) < 1) {
     form_set_error('delete', t("No terms for deleting selected"));
+    $form_state['rebuild'] = TRUE;
   }
+  
 }
 
 /**
@@ -720,12 +720,14 @@ function taxonomy_manager_form_delete_submit($form, $form_state) {
 /**
  * Validation handler for moving terms
  */
-function taxonomy_manager_form_move_validate($form, $form_state) {
+function taxonomy_manager_form_move_validate($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   if (count($selected_tids) < 1) {
     form_set_error('move', t("Please selected terms you want to move in the hierarchy"));
+    $form_state['rebuild'] = TRUE;
   }
+  
 }
 
 /**
@@ -749,7 +751,7 @@ function taxonomy_manager_form_move_submit($form, $form_state) {
 /**
  * Validation handler for validating terms
  */
-function taxonomy_manager_form_merge_validate($form, $form_state) {
+function taxonomy_manager_form_merge_validate($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   
@@ -760,17 +762,22 @@ function taxonomy_manager_form_merge_validate($form, $form_state) {
 
   if (!is_array($main_terms) || count($main_terms) == 0 || empty ($main_terms[0])) {
     form_set_error('merge][main_term', t("Please enter a name into %title", array('%title' => "'". t('Main term') ."'")));
+    $form_state['rebuild'] = TRUE;
   }
   else if (count($main_terms) > 1) {
     form_set_error('merge][main_term', t("Please only enter single names into %title", array('%title' => "'". t('Main term') ."'")));
+    $form_state['rebuild'] = TRUE;
   }
       
   if (count($selected_tids) < 1) {
     form_set_error('merge', t("Please selected terms you want to merge"));
+    $form_state['rebuild'] = TRUE;
   }
   else if (count($selected_tids) > 50) {
     form_set_error('merge', t("Please select less than 50 terms to merge. Merging to many terms in one step can cause timeouts and inconsistent database states"));
+    $form_state['rebuild'] = TRUE;
   }
+  
 }
 
 /**
