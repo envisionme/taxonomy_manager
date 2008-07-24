@@ -251,6 +251,9 @@ function taxonomy_manager_term_page($str_tids = '', $depth = 0, $op = 'page') {
  *   #add_term_info: if TRUE, hidden form values with the term id and weight are going to be added
  *   #expand_all: if TRUE, all elements are going to be expanded by default
  *   #multiple: if TRUE the tree will contain checkboxes, otherwise radio buttons
+ *   #tree_is_required: use #tree_is_required instead of #required if you are using the tree within an other
+ *                      element and don't want that both are internally required, because it might cause that
+ *                      error messages are shown twice (see content_taxonomy_tree)
  * 
  * defining term operations:
  *   to add values (operations,..) to each term, add a function, which return a form array
@@ -326,7 +329,8 @@ function taxonomy_manager_tree_process_elements($element) {
   $element['#tree'] = TRUE;
   $element['#id'] = $id;
   $element['#element_validate'] = array('taxonomy_manager_tree_validate');
-  
+  $element['#required'] = isset($element['#tree_is_required']) ? $element['#tree_is_required'] : FALSE;
+
   $terms_to_expand = array();
   if (count($element['#default_value']) && !$element['#expand_all']) {
     $terms_to_expand = taxonomy_manager_tree_get_terms_to_expand($tree, $element['#default_value']);
@@ -685,6 +689,7 @@ function _taxonomy_manager_tree_sub_forms_set_parents($tree_id, $parent, &$form)
  */
 function taxonomy_manager_tree_validate($form, &$form_state) {
   $selected = array();
+
   if ($form['#multiple']) {
     $selected = _taxonomy_manager_tree_get_selected_terms($form['#value']);
   }
@@ -726,7 +731,7 @@ function _taxonomy_manager_tree_get_selected_terms($form_values) {
   $tids = array();
   if (is_array($form_values)) {
     foreach ($form_values as $tid => $form_value) {
-      if ($form_value['checkbox']) {
+      if ($form_value['checkbox'] && $tid && ($tid == $form_value['checkbox'])) {
         $tids[$tid] = $tid;
       }
       if (is_array($form_value['children'])) {
