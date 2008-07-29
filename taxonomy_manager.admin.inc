@@ -25,6 +25,12 @@ function taxonomy_manager_voc_list() {
  * @param $search_string a string to filter root level terms
  */
 function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
+  
+  // Check for confirmation forms.
+  if (isset($form_state['confirm_delete'])) {
+    return taxonomy_manager_term_confirm_delete($form_state, $vid);
+  }
+  
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   drupal_add_css($module_path .'css/taxonomy_manager.css');
   drupal_add_js($module_path .'js/hideForm.js');
@@ -33,7 +39,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   drupal_add_js('misc/textarea.js');  //because of term data form wich gets dynamically loaded
   
   drupal_add_js(array('termData' => array('url' => url("admin/content/taxonomy_manager/termdata/edit/". $vid), 'tid' => $tid, 'term_url' => url(taxonomy_manager_tree_link($vid) .'/'. $tid .'/true'))), 'setting');
-  drupal_add_js(array('updateWeight' => array('up' => 'edit-weight-up', 'down' => 'edit-weight-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid), 'disable_mouseover' => variable_get('taxonomy_manager_disable_mouseover_weights', 0))), 'setting');
+  drupal_add_js(array('updateWeight' => array('up' => 'edit-weight-up', 'down' => 'edit-weight-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid), 'disable_mouseover' => variable_get('taxonomy_manager_disable_mouseover', 0))), 'setting');
   drupal_add_js(array('TMAjaxThrobber' => array('add' => TRUE)), 'setting');
   
   $form = array();
@@ -157,6 +163,13 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#attributes' => array('class' => 'taxonomy-manager-buttons merge'),
     '#value' => t('Merge'), 
     '#theme' => 'no_submit_button', 
+  );
+  
+  $form['toolbar']['export_show'] = array( 
+    '#type' => 'button', 
+    '#attributes' => array('class' => 'taxonomy-manager-buttons export'),
+    '#value' => t('CSV Export'), 
+    '#theme' => 'no_submit_button', 
     '#suffix' => '</div>'
   );
   
@@ -173,6 +186,8 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   $form += taxonomy_manager_move_form($voc);
   
   $form += taxonomy_manager_confirm_delete($voc);
+  
+  $form += taxonomy_manager_export_form($voc);
   
   if ($tid) {
     $form += taxonomy_manager_form_term_data($tid);
@@ -265,6 +280,19 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
       '#type' => 'textfield', 
     );
   }
+  $form['add']['mass'] = array(
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('Mass term import (with textarea)'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['add']['mass']['mass_add'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Terms'),
+    '#description' => t('One term per line'),
+    '#rows' => 10,
+  );
   $form['add']['add'] = array( 
     '#type' => 'submit',
     '#attributes' => array('class' => 'taxonomy-manager-buttons add'), 
@@ -272,26 +300,6 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
     '#validate' => array('taxonomy_manager_form_add_validate'),
     '#submit' => array('taxonomy_manager_form_add_submit'),
   );
-  /*
-  $form['add']['wrapper'] = array(
-    '#prefix' => '<div id="more-textfields">',
-    '#suffix' => '</div>',
-    '#value' => ' ',
-  );
-  
-  $form['add']['add_more'] = array(
-    '#type' => 'submit',
-    '#value' => t('More textfields'),
-    '#description' => t("If the amount of boxes above isn't enough, click here to add more textfields."),
-    '#submit' => array('poll_more_choices_submit'), // If no javascript action.
-    '#ahah' => array(
-      'path' => 'admin/content/taxonomy_manager/add_more',
-      'wrapper' => 'more-textfields',
-      'method' => 'append',
-      'effect' => 'none',
-    ),
-  );*/
-  
   $form['add']['cancel'] = array( 
     '#type' => 'button', 
     '#value' => t('Cancel'),
@@ -303,37 +311,6 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   
 }
 
-/*
-function taxonomy_manager_add_form_more() {
-  $delta = count($_POST['choice']);
-
-  // Build our new form element.
-  //$form_element = _poll_choice_form($delta);
-  //drupal_alter('form', $form_element, array(), 'poll_choice_js');
-
-  // Build the new form.
-  $form_state = array('submitted' => FALSE);
-  $form_build_id = $_POST['form_build_id'];
-  // Add the new element to the stored form. Without adding the element to the
-  // form, Drupal is not aware of this new elements existence and will not
-  // process it. We retreive the cached form, add the element, and resave.
-  $form = form_get_cache($form_build_id, $form_state);
-  $form_element['name'] = array(
-    '#type' => 'textfield'
-  );
-  $form['choice_wrapper']['choice'][$delta] = $form_element;
-  form_set_cache($form_build_id, $form, $form_state);
-  $form += array(
-    '#post' => $_POST,
-    '#programmed' => FALSE,
-  );
-
-  // Rebuild the form.
-  //$form = form_builder('taxonomy_manager_form', $form_element, $form_state);
-  $output = drupal_render($form_element);
-
-  drupal_json(array('status' => TRUE, 'data' => $output));
-}*/
 
 /**
  * form for merging terms
@@ -460,6 +437,76 @@ function taxonomy_manager_move_form($voc) {
 }
 
 /**
+ * form for exporting terms
+ */
+function taxonomy_manager_export_form($voc) {
+  drupal_add_js(array('hideForm' => array(
+    'show_button' => 'edit-export-show', 
+    'hide_button' => 'edit-export-cancel',
+    'div' => 'export-form')), 'setting');
+  
+  $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
+  drupal_add_js($module_path .'js/csv_export.js');
+  
+  drupal_add_js(array('exportCSV' => array('url' => url("admin/content/taxonomy_manager/export"))), 'setting');
+  
+  $form = array();
+  
+  $form['export'] = array( 
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('CSV Export'),
+    '#description' => $description,
+    '#prefix' => '<div id="export-form">',
+    '#suffix' => '</div>',
+  );
+
+  
+  $form['export']['delimiter'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Delimiter for CSV File'),
+    '#required' => FALSE,
+    '#default_value' => ";",
+  );
+
+  $options['whole_voc'] = t('Whole Vocabulary');
+  $options['children'] = t('Child terms of a selected term');
+  $options['root_terms'] = t('Root level terms only');
+
+  $form['export']['options'] = array( 
+    '#type' => 'radios', 
+    '#title' => t('Terms to export'), 
+    '#options' => $options, 
+    '#default_value' => 'whole_voc',
+    '#prefix' => '<div id="taxonomy_manager_export_options">',
+    '#suffix' => '</div>',
+  );
+  
+  $form['export']['csv'] = array(
+    '#type' => 'textarea', 
+    '#title' => t('Exported CSV'),
+    '#description' => t('The generated code will appear here (per AJAX). You can copy and paste the code into a .csv file. The csv has following columns: voc id | term id | term name | description | parent id 1 | ... | parent id n'),
+    '#rows' => 8,
+  );
+  
+  $form['export']['submit'] = array( 
+    '#type' => 'submit',
+    '#attributes' => array('class' => 'taxonomy-manager-buttons export'), 
+    '#value' => t('Export now'),
+    '#theme' => 'no_submit_button', 
+  );
+   
+  $form['export']['cancel'] = array( 
+    '#type' => 'button', 
+    '#value' => t('Cancel'),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons cancel'),
+    '#theme' => 'no_submit_button',  
+  );
+  
+  return $form;
+}
+
+/**
  * menu callback for displaying term data form
  * 
  * if this function gets called by ahah, then the term data form gets 
@@ -496,9 +543,16 @@ function taxonomy_manager_form_term_data($tid) {
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $vocabulary = taxonomy_vocabulary_load($term->vid);
   
+  //prevent that title of the fieldset is too long
+  $title = check_plain($term->name);
+  if (strlen($title) >= 33) {
+    $title = substr($title, 0, 33) . "...";
+  }
+  $title .= " (". $term->tid .")";
+  
   $form['term_data'] = array( 
     '#type' => 'fieldset', 
-    '#title' => $term->name,
+    '#title' => $title,
     '#attributes' => array('id' => 'taxonomy-term-data-fieldset'),
     '#tree' => TRUE,
   );
@@ -561,6 +615,8 @@ function taxonomy_manager_form_term_data($tid) {
     '#suffix' => '</div>', 
     '#title' => t('Weight'), 
   );
+  $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
+  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)));
   return $form;
 }
 
@@ -633,7 +689,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
  * validates the form (only search button)
  **/
 function taxonomy_manager_form_validate($form, &$form_state) {
-  if (empty($form_state['values']['search']['field'])) {
+  if ($form_state['clicked_button']['#value'] == t('Search') && empty($form_state['values']['search']['field'])) {
     form_set_error('search', t('Search field is empty'));
     $form_state['rebuild'] = TRUE;
   }
@@ -643,6 +699,9 @@ function taxonomy_manager_form_validate($form, &$form_state) {
  * submits the taxonomy manager form (only search button)
  **/
 function taxonomy_manager_form_submit($form, &$form_state) {  
+  if ($form_state['values']['delete'] === TRUE) {
+    return taxonomy_manager_term_confirm_delete_submit($form, $form_state);
+  }
   $search_string = $form_state['values']['search']['field'];
   $terms = array();
   $terms = taxonomy_manager_autocomplete_tags_get_tids($search_string, $form_state['values']['vid'], FALSE);
@@ -658,39 +717,32 @@ function taxonomy_manager_form_submit($form, &$form_state) {
 
 
 /**
- * Validation handler for adding terms
- *
-function taxonomy_manager_form_add_validate($form, $form_state) {
-  $selected_tids = array();
-  $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
-  //check for parents concerning voc settings
-  $voc = taxonomy_vocabulary_load($form_state['values']['vid']);
-      
-  if ($voc->hierarchy == 0 && count($selected_tids) > 0) {
-    form_set_error('add', t('Please unselect terms in the list before adding new terms. This vocabulary doesn\'t provide hierarchies.'));
-  }
-  else if ($voc->hierarchy == 1 && count($selected_tids) > 1) {
-    form_set_error('add', t('Please only select one term in the list (at maximum) as parent. This vocabulary provides only single hirarchies.'));
-  }
-  
-}*/
-
-/**
  * Submit handler for adding terms
  */
 function taxonomy_manager_form_add_submit($form, &$form_state) {
+  $terms = array();
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   foreach ($form_state['values']['add']['term'] as $value) {
     if (!empty($value)) {
+      $terms[] = $value;
+    }
+  }
+  if ($form_state['values']['add']['mass']['mass_add']) {
+    foreach (explode ("\n", str_replace("\r", '', $form_state['values']['add']['mass']['mass_add'])) as $term) {
+      if ($term) {
+        $terms[] = $term;
+      }
+    }
+  }
+  foreach ($terms as $name) {
       $term = array();
-      $term['name'] = $value;
+      $term['name'] = $name;
       $term['vid'] = $form_state['values']['vid'];
       $term['parent'] = $selected_tids;
       taxonomy_save_term($term);
-    }
   }
-  drupal_set_message("Terms added");
+  drupal_set_message("Terms added: ". check_plain(implode(', ', $terms)));
 }
 
 
@@ -700,23 +752,66 @@ function taxonomy_manager_form_add_submit($form, &$form_state) {
 function taxonomy_manager_form_delete_validate($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
-  
   if (count($selected_tids) < 1) {
     form_set_error('delete', t("No terms for deleting selected"));
     $form_state['rebuild'] = TRUE;
   }
-  
 }
+
+
 
 /**
  * Submit handler for deleting terms
  */
-function taxonomy_manager_form_delete_submit($form, $form_state) {
+function taxonomy_manager_form_delete_submit($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
-  taxonomy_manager_delete_terms($selected_tids, $form_state['values']['delete']['options']);
-  drupal_set_message("Selected terms deleted"); 
+  if ($form_state['values']['delete'] === TRUE) {
+    return taxonomy_manager_term_confirm_delete_submit($form, $form_state);
+  }
+  // Rebuild the form to confirm term deletion.
+  $form_state['rebuild'] = TRUE;
+  $form_state['confirm_delete'] = TRUE;
 }
+
+
+/**
+ * Form builder for the term delete form.
+ *
+ */
+function taxonomy_manager_term_confirm_delete(&$form_state, $vid) {
+  $selected = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
+  $form['selected_terms'] = array('#prefix' => '<ul>', '#suffix' => '</ul>', '#tree' => TRUE);
+  foreach ($selected as $tid) {
+    $term = taxonomy_get_term($tid);
+    $form['selected_terms'][$tid] = array('#type' => 'hidden', '#value' => $tid, '#prefix' => '<li>', '#suffix' => check_plain($term->name) ."</li>\n");
+  }
+
+  $form['delete'] = array('#type' => 'value', '#value' => TRUE);
+  $form['vid'] = array('#type' => 'value', '#value' => $vid);
+  $form['options'] = array('#type' => 'value', '#value' => $form_state['values']['delete']['options']);
+  $msg = !empty($form_state['values']['delete']['options']['delete_orphans']) ? t('Deleting a term will delete all its children if there are any. ') : '';
+  $msg .= t('This action cannot be undone.');
+  return confirm_form($form,
+      t('Are you sure you want to delete the following terms: '),
+      'admin/content/taxonomy_manager/voc/'. $vid,
+      $msg,
+      t('Delete'),
+      t('Cancel'));
+}
+
+/**
+ * Submit handler to delete a term after confirmation.
+ *
+ */
+function taxonomy_manager_term_confirm_delete_submit($form, &$form_state) {
+  taxonomy_manager_delete_terms($form_state['values']['selected_terms'], $form_state['values']['options']);
+  $form_state['redirect'] = 'admin/content/taxonomy_manager/voc/'. $form_state['values']['vid'];
+  drupal_set_message("Selected terms deleted"); 
+  return;
+}
+
+
 
 /**
  * Validation handler for moving terms
@@ -801,12 +896,19 @@ function taxonomy_manager_form_merge_submit($form, $form_state) {
  * Defines a settings form.
  */
 function taxonomy_manager_settings() {
-  $form['taxonomy_manager_disable_mouseover_weights'] = array(
+  $form['taxonomy_manager_disable_mouseover'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Disable mouse-over effect for weight arrows'),
-    '#default_value' => variable_get('taxonomy_manager_disable_mouseover_weights', 0),
+    '#title' => t('Disable mouse-over effect for terms (weights and direct link)'),
+    '#default_value' => variable_get('taxonomy_manager_disable_mouseover', 0),
     '#description' => t('Disabeling this feature speeds up the Taxonomy Manager'),
   );
+  $form['taxonomy_manager_pager_tree_page_size'] = array(
+    '#type' => 'select',
+    '#title' => t('Select how many terms get listet on one page (pager count)'),
+    '#options' => array(25 => 25, 50 => 50, 75 => 75, 100 => 100, 150 => 150, 200 => 200, 250 => 250, 300 => 300, 400 => 400, 500 => 500),
+   '#default_value' => variable_get('taxonomy_manager_pager_tree_page_size', 50),
+    '#description' => t('Huge page counts can slow down the Taxonomy Manager'),
+);
   return system_settings_form($form);
 }
 
@@ -1184,6 +1286,55 @@ function taxonomy_manager_update_weights($vid) {
     }
   }
   exit();
+}
+
+/** 
+ * AJAX Callback that returns the CSV Output
+ */
+function taxonomy_manager_export() {
+  $edit = $_POST;
+  $output = taxonomy_manager_export_csv($edit['delimiter'], $edit['vid'], $edit['tid'], array($edit['option'] => TRUE));
+  print $output;
+  exit();
+}
+
+/** 
+ * Generates the CVS Ouput
+ */
+function taxonomy_manager_export_csv($delimiter = ";", $vid, $selected_tid = 0, $options = array()) {
+  $tree = taxonomy_manager_export_get_tree($vid, $selected_tid, $options);
+
+  foreach ($tree as $term) {
+    $array = array();
+    $array[] = '"'. $term->vid .'"';
+    $array[] = '"'. $term->tid .'"';
+    $array[] = '"'. $term->name .'"';
+    $array[] = '"'. $term->description .'"';
+    foreach ($term->parents as $parent) {
+      $array[] = '"'. $parent .'"';
+    }
+    $output .= implode($delimiter, $array) ."\n";
+  }
+  return $output;
+}
+
+/**
+ * Helper for cvs export to get taxonomy tree
+ */
+function taxonomy_manager_export_get_tree($vid, $selected_tid, $options) {
+  $tree = array();
+
+  if ($options['whole_voc']) {
+    $tree = taxonomy_get_tree($vid);
+  }
+  else if ($options['children'] && $selected_tid) {
+    $tree = taxonomy_get_tree($vid, $selected_tid);
+  }
+  else if ($options['root_terms']) {
+    $tree = taxonomy_get_tree($vid, 0, -1, 1);
+  }
+  
+  return $tree;
 }
 
 

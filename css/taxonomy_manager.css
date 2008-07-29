@@ -11,7 +11,7 @@
   float: left;
   height: 550px;	
   overflow: auto;
-  width: 300px;
+  width: 350px;
   margin: 0;
   padding: 0;
 }
@@ -143,6 +143,10 @@ input.cancel {
 
 input.search {
   background-image: url(../images/edit-find.png);
+}
+
+input.export {
+  background-image: url(../images/csv.png);
 }
 
 

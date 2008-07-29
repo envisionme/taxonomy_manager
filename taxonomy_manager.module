@@ -11,14 +11,12 @@
  * 
  */
 
-define('TAXONOMY_MANAGER_TREE_PAGE_SIZE', 50);
-
 
 /**
  * Implementation of hook_menu
  */
 function taxonomy_manager_menu() {
-  $items['admin/content/taxonomy_manager'] = array('path' => 'admin/content/taxonomy_manager',
+  $items['admin/content/taxonomy_manager'] = array(
     'title' => 'Taxonomy Manager',
     'description' => 'Administer vocabularies with the Taxonomy Manager',
     'page callback' => 'taxonomy_manager_voc_list',
@@ -60,6 +58,13 @@ function taxonomy_manager_menu() {
     'file' => 'taxonomy_manager.admin.inc',
   );
   
+  $items['admin/content/taxonomy_manager/export'] = array(
+    'page callback' => 'taxonomy_manager_export',
+    'access arguments' => array('administer taxonomy'),
+    'type' => MENU_CALLBACK,
+    'file' => 'taxonomy_manager.admin.inc',
+  );
+  
   $items['admin/content/taxonomy_manager/voc'] = array(
     'title' => 'Taxonomy Manager',
     'page callback' => 'drupal_get_form',
@@ -76,16 +81,7 @@ function taxonomy_manager_menu() {
     'page arguments' => array('taxonomy_manager_settings'),
     'access arguments' => array('administer site configuration'),
     'file' => 'taxonomy_manager.admin.inc',
-  );
-  
-  /*$items['admin/content/taxonomy_manager/add_more'] = array(
-    'title' => 'Javascript More Textfields',
-    'page callback' => 'taxonomy_manager_add_form_more',
-    'access arguments' => array('administer taxonomy'),
-    'type' => MENU_CALLBACK,
-    'file' => 'taxonomy_manager.admin.inc',
-  );*/
-  
+  );  
   return $items;
 }
 
@@ -143,12 +139,15 @@ function taxonomy_manager_help($path, $arg) {
  * function gets called by the taxonomy_manager_tree form type (form_id +_operations)
  * return an form array with values to show next to every term value
  */
-function taxonomy_manager_tree_operations() {
+function taxonomy_manager_tree_operations($term) {
   $form = array();
-  if (!variable_get('taxonomy_manager_disable_mouseover_weights', 0)) {
+  if (!variable_get('taxonomy_manager_disable_mouseover', 0)) {
     $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
     $form['up'] = array('#value' => theme("image", $module_path ."images/go-up-small.png", "go up", NULL, array('class' => 'term-up')));
     $form['down'] = array('#value' => theme("image", $module_path ."images/go-down-small.png", "go down", NULL, array('class' => 'term-down')));
+    $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
+    $link = l('&nbsp;'. $link_img, taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE));
+    $form['link'] = array('#value' => $link, '#weight' => 10);
   }
   return $form;
 }
@@ -159,8 +158,8 @@ function taxonomy_manager_tree_operations() {
  *
  * @param $vid vocabulary id
  */
-function taxonomy_manager_tree_link($vid) {
-  return "admin/content/taxonomy_manager/termdata/". $vid;
+function taxonomy_manager_tree_link($term) {
+  return "admin/content/taxonomy_manager/termdata/". $term->vid ."/". $term->tid;
 }
 
 /**
@@ -306,13 +305,13 @@ function taxonomy_manager_tree_process_elements($element) {
   if (!is_array($element['#operations'])) {
     $opertions_callback = implode('_', $element['#parents']) .'_operations';
     if (function_exists($opertions_callback)) {
-      $element['#operations'] = $opertions_callback();
+      $element['#operations_callback'] = $opertions_callback;
     }
   }
   if (!isset($element['#link'])) {
     $link_callback = implode('_', $element['#parents']) .'_link';
     if (function_exists($link_callback)) {
-      $element['#link'] = $link_callback($vid);
+      $element['#link_callback'] = $link_callback;
     }
   }
   
@@ -320,7 +319,7 @@ function taxonomy_manager_tree_process_elements($element) {
   $tree = _taxonomy_manager_tree_get_item($element['#vid'], $element['#parent'], $element['#pager'], $element['#siblings_page'], $element['#search_string']);
   
   if ($element['#pager'] && !($element['#parent'] || $element['#siblings_page'])) {
-    $element['pager'] = array('#value' => theme('pager', NULL, TAXONOMY_MANAGER_TREE_PAGE_SIZE));
+    $element['pager'] = array('#value' => theme('pager', NULL, variable_get('taxonomy_manager_pager_tree_page_size', 50)));
   }
   
   $element['#default_value'] = is_array($element['#default_value']) ? $element['#default_value'] : array();
@@ -354,15 +353,15 @@ function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $sib
   $tree = array();
   if ($pager) {
     if ($parent || $siblings_page) {
-      $start = ($siblings_page-1) * TAXONOMY_MANAGER_TREE_PAGE_SIZE;
-      $result = db_query_range("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = %d ORDER BY weight, name", $vid, $parent, $start, TAXONOMY_MANAGER_TREE_PAGE_SIZE);
+      $start = ($siblings_page-1) * variable_get('taxonomy_manager_pager_tree_page_size', 50);
+      $result = db_query_range("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = %d ORDER BY weight, name", $vid, $parent, $start, variable_get('taxonomy_manager_pager_tree_page_size', 50));
     }
     else {
       if ($search_string) {
-        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 AND name LIKE ('%%%s%%') ORDER BY weight, name", TAXONOMY_MANAGER_TREE_PAGE_SIZE, 0, NULL, array($vid, $search_string));
+        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 AND name LIKE ('%%%s%%') ORDER BY weight, name", variable_get('taxonomy_manager_pager_tree_page_size', 50), 0, NULL, array($vid, $search_string));
       }
       else {
-        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 ORDER BY weight, name", TAXONOMY_MANAGER_TREE_PAGE_SIZE, 0, NULL, array($vid));
+        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 ORDER BY weight, name", variable_get('taxonomy_manager_pager_tree_page_size', 50), 0, NULL, array($vid));
       }
     }
 
@@ -425,21 +424,27 @@ function taxonomy_manager_tree_build_form(&$index, $tree, &$form, $root_form, $p
       '#return_value' => $term->tid,
       '#theme' => ($multiple) ? 'taxonomy_manager_tree_checkbox' : 'taxonomy_manager_tree_radio',
     );
-    if ($root_form['#link']) {
-      $form[$term->tid]['checkbox']['#link'] = $root_form['#link'] .'/'. $term->tid;
+    if (!empty($root_form['#link_callback'])) {
+      $link_callback = $root_form['#link_callback'];
+      if (function_exists($link_callback)) {
+        $form[$term->tid]['checkbox']['#link'] = $link_callback($term);
+      }
     }
     
     if ($root_form['#add_term_info']) {
       $form[$term->tid]['weight'] = array('#type' => 'hidden', '#value' => $term->weight, '#attributes' => array('class' => 'weight-form'));
       $form[$term->tid]['tid'] = array('#type' => 'hidden', '#value' => $term->tid, '#attributes' => array('class' => 'term-id'));
     }
-    
-    if (is_array($root_form['#operations'])) {
-      $form[$term->tid]['operations'] = $root_form['#operations'];
+
+    if (!empty($root_form['#operations_callback'])) {
+      $opertions_callback = $root_form['#operations_callback'];
+      if (function_exists($opertions_callback)) {
+        $form[$term->tid]['operations'] = $opertions_callback($term);
+      }
     }
     
     if ($page) {
-      if ($index == (TAXONOMY_MANAGER_TREE_PAGE_SIZE - 1)) {
+      if ($index == (variable_get('taxonomy_manager_pager_tree_page_size', 50) - 1)) {
         $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
         $form[$term->tid]['has-more-siblings'] = array( 
           '#type' => 'markup', 
@@ -557,11 +562,11 @@ function _taxonomy_manager_tree_term_has_children($tid) {
  */
 function _taxonomy_manager_tree_get_next_siblings_count($vid, $page, $parent = 0) {
   $count = db_result(db_query("SELECT COUNT(t.tid) FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = %d", $vid, $parent));
-  $current_count = TAXONOMY_MANAGER_TREE_PAGE_SIZE * $page;
+  $current_count = variable_get('taxonomy_manager_pager_tree_page_size', 50) * $page;
   $diff = $count - $current_count;
   
-  if ($diff > TAXONOMY_MANAGER_TREE_PAGE_SIZE) {
-    $diff = TAXONOMY_MANAGER_TREE_PAGE_SIZE;
+  if ($diff > variable_get('taxonomy_manager_pager_tree_page_size', 50)) {
+    $diff = variable_get('taxonomy_manager_pager_tree_page_size', 50);
   }
   
   return $diff;
@@ -592,12 +597,12 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
   
   $opertions_callback = str_replace('-', '_', $tree_id) .'_operations';
   if (function_exists($opertions_callback)) {
-    $child_form['#operations'] = $opertions_callback();
+    $child_form['#operations_callback'] = $opertions_callback;
   }
   
   $link_callback = str_replace('-', '_', $tree_id) .'_link';
   if (function_exists($link_callback)) {
-    $child_form['#link'] = $link_callback($vid);
+    $child_form['#link_callback'] = $link_callback;
   }
   
   _taxonomy_manager_tree_sub_forms_set_parents($tree_id, $parent, $child_form);
@@ -637,12 +642,12 @@ function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $
   
   $opertions_callback = str_replace('-', '_', $tree_id) .'_operations';
   if (function_exists($opertions_callback)) {
-    $siblings_form['#operations'] = $opertions_callback();
+    $siblings_form['#operations_callback'] = $opertions_callback;
   }
   
   $link_callback = str_replace('-', '_', $tree_id) .'_link';
   if (function_exists($link_callback)) {
-    $siblings_form['#link'] = $link_callback($vid);
+    $siblings_form['#link_callback'] = $link_callback;
   }
   
   _taxonomy_manager_tree_sub_forms_set_parents($tree_id, $parent, $siblings_form);
