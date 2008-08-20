@@ -1132,13 +1132,13 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
   foreach ($merging_terms as $merge_term) {
     if ($merge_term != $main_term) {
       //update node-relations
-      $sql = db_query("SELECT nid FROM {term_node} WHERE tid = %d", $merge_term);
+      $sql = db_query("SELECT * FROM {term_node} WHERE tid = %d", $merge_term);
       while ($obj = db_fetch_object($sql)) {
-        $nid = $obj->nid;
-        db_query("DELETE FROM {term_node} WHERE tid = %d AND nid = %d", $merge_term, $nid);
-        if (!db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE tid = %d AND nid = %d", $main_term, $nid))) {
-          db_query("INSERT INTO {term_node} (tid, nid) VALUES (%d, %d)", $main_term, $nid);
-       }
+        db_query("DELETE FROM {term_node} WHERE tid = %d AND nid = %d", $obj->tid, $obj->nid);
+        if (!db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE tid = %d AND nid = %d", $main_term, $obj->nid))) {
+          $obj->tid = $main_term;
+          drupal_write_record('term_node', $obj);
+        }
       }
     
       if ($voc->hierarchy == 1) {  //sinlge hierarchy
