@@ -332,7 +332,7 @@ function taxonomy_manager_tree_process_elements($element) {
 
   $terms_to_expand = array();
   if (count($element['#default_value']) && !$element['#expand_all']) {
-    $terms_to_expand = taxonomy_manager_tree_get_terms_to_expand($tree, $element['#default_value']);
+    $terms_to_expand = taxonomy_manager_tree_get_terms_to_expand($tree, $element['#default_value'], $element['#multiple']);
   }
   
   taxonomy_manager_tree_build_form($index = 0, $tree, $element['#elements'], $element, $element['#parents'], !$element['#pager'], $element['#siblings_page'], $element['#default_value'], $element['#multiple'], $terms_to_expand);
@@ -379,7 +379,7 @@ function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $sib
 /**
  * marks parent terms to expand if a child terms is selected by default
  */
-function taxonomy_manager_tree_get_terms_to_expand($tree, $default_values) {
+function taxonomy_manager_tree_get_terms_to_expand($tree, $default_values, $multiple) {
   $terms = array();
   foreach (array_reverse($tree) as $term) {
     if (in_array($term->tid, array_values($default_values)) || in_array($term->tid, $terms)) {
@@ -387,6 +387,9 @@ function taxonomy_manager_tree_get_terms_to_expand($tree, $default_values) {
         foreach ($term->parents as $parent) {
           if ($parent) {
             $terms[$parent] = $parent;
+          }
+          if (!$multiple) {
+            break;
           }
         }
       }
@@ -417,10 +420,21 @@ function taxonomy_manager_tree_build_form(&$index, $tree, &$form, $root_form, $p
     $this_parents = $parents;
     $this_parents[] = $term->tid;
     
+    $value = in_array($term->tid, $default_value) ? 1 : 0;
+    if ($value && !$multiple) {
+      // Find our direct parent
+      $newindex = $index;
+      while ($newindex >= 0 && $tree[$newindex]->depth >= $current_depth) {
+        $newindex--;
+      }
+      if ($newindex >= 0) {
+        $value = in_array($tree[$newindex]->tid, $terms_to_expand) ? 1 : 0;
+      }
+    }
     $form[$term->tid]['checkbox'] = array(
       '#type' => ($multiple) ? 'checkbox' : 'radio', 
       '#title' => $term->name, 
-      '#value' => in_array($term->tid, $default_value) ? 1 : 0,
+      '#value' => $value,
       '#return_value' => $term->tid,
       '#theme' => ($multiple) ? 'taxonomy_manager_tree_checkbox' : 'taxonomy_manager_tree_radio',
     );
