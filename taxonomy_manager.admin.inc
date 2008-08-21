@@ -262,9 +262,7 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   $form = array();
   
   $description = "";
-  if ($voc->hierarchy >= 1) {
-    $description = t("If you have selected one or more terms in the tree view, the new terms are automatically children of those.");
-  }
+  $description = t("If you have selected one or more terms in the tree view, the new terms are automatically children of those.");
   
   $form['add'] = array( 
     '#type' => 'fieldset', 
@@ -736,12 +734,13 @@ function taxonomy_manager_form_add_submit($form, &$form_state) {
     }
   }
   foreach ($terms as $name) {
-      $term = array();
-      $term['name'] = $name;
-      $term['vid'] = $form_state['values']['vid'];
-      $term['parent'] = $selected_tids;
-      taxonomy_save_term($term);
+    $term = array();
+    $term['name'] = $name;
+    $term['vid'] = $form_state['values']['vid'];
+    $term['parent'] = $selected_tids;
+    taxonomy_save_term($term);
   }
+  taxonomy_manager_update_voc($form_state['values']['vid'], $selected_tids);
   drupal_set_message("Terms added: ". check_plain(implode(', ', $terms)));
 }
 
@@ -840,7 +839,12 @@ function taxonomy_manager_form_move_submit($form, $form_state) {
   }
   if (count($parents) == 0) $parents[0] = 0; //if empty, delete all parents
   taxonomy_manager_move($parents, $selected_tids, $form_state['values']['move']['options']);
-      
+  
+  if ($form_state['values']['move']['options']['keep_old_parents']) {
+    $parents[] = 1; //++ parent count for hierarchy update (-> multi hierarchy)
+  }
+  taxonomy_manager_update_voc($form_state['values']['vid'], $parents);
+  
   drupal_set_message("Terms moved");
 }
 
@@ -889,6 +893,7 @@ function taxonomy_manager_form_merge_submit($form, $form_state) {
   if ($main_term['new']) $new_inserted = true;
   $main_term_tid = $main_term['tid'];
   taxonomy_manager_merge($main_term_tid, $selected_tids, $form_state['values']['merge']['options'], $new_inserted);
+  
   drupal_set_message("Terms merged");
 }
 
@@ -979,6 +984,7 @@ function taxonomy_manager_term_data_edit($vid) {
       else if ($op == 'add') {
         db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
       }
+      taxonomy_manager_update_voc($vid, taxonomy_get_parents($tid));
       break; 
     
     case 'related': 
@@ -1337,6 +1343,17 @@ function taxonomy_manager_export_get_tree($vid, $selected_tid, $options) {
   return $tree;
 }
 
+/**
+ * Helper function that updates the hierarchy settings of a voc
+ */
+function taxonomy_manager_update_voc($vid, $parents = array()) {
+  $voc = (array) taxonomy_vocabulary_load($vid);
+  $current_hierarchy = count($parents) == 1 ? 1 : 2;
+  if ($current_hierarchy > $voc['hierarchy']) {
+    $voc['hierarchy'] = $current_hierarchy;
+    taxonomy_save_vocabulary($voc);
+  }
+}
 
 /**
  * theme function for taxonomy manager form
