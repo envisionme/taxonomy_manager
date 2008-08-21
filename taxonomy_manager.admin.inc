@@ -1067,14 +1067,13 @@ function taxonomy_manager_delete_terms($tids, $options = array()) {
           }
         }
       }
-      
+      $term = (array) taxonomy_get_term($tid);
       db_query('DELETE FROM {term_data} WHERE tid = %d', $tid);
       db_query('DELETE FROM {term_hierarchy} WHERE tid = %d', $tid);
       db_query('DELETE FROM {term_relation} WHERE tid1 = %d OR tid2 = %d', $tid, $tid);
       db_query('DELETE FROM {term_synonym} WHERE tid = %d', $tid);
       db_query('DELETE FROM {term_node} WHERE tid = %d', $tid);
     
-      $term = (array) taxonomy_get_term($tid);
       module_invoke_all('taxonomy', 'delete', 'term', $term);
       $tids = $orphans;
     }
