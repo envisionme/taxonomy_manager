@@ -15,7 +15,7 @@
 /**
  * Implementation of hook_menu
  */
-function taxonomy_manager_menu() {
+function taxonomy_manager_menu() {
   $items['admin/content/taxonomy_manager'] = array(
     'title' => 'Taxonomy Manager',
     'description' => 'Administer vocabularies with the Taxonomy Manager',
