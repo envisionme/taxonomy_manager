@@ -8,13 +8,19 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
   //use tree settings....
   var settings = Drupal.settings.taxonomytree || [];
   if (settings['id']) {
+    
     if (!(settings['id'] instanceof Array)) {
-      if (Drupal.settings.termData['tid']) {
-        var termdata = new Drupal.TermData(Drupal.settings.termData['tid'], Drupal.settings.termData['term_url']);
+      if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+        var ul = $('#'+ settings['id']).find("ul");
+        Drupal.attachTermData(ul);
+      }
+      
+      var tid = $('#edit-term-data-tid').val();
+      if (tid) {
+        var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
+        var termdata = new Drupal.TermData(tid, url);
         termdata.form();
       }
-      var ul = $('#'+ settings['id']).find("ul");
-      Drupal.attachTermData(ul);
     }
   }
 }
@@ -25,7 +31,7 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
 Drupal.attachTermData = function(ul) {
   $(ul).find('a.term-data-link').click(function() {
     var li = $(this).parents("li");
-    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href, li);
+    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li);
     termdata.load();
     return false;
   });
@@ -38,7 +44,7 @@ Drupal.attachTermDataToSiblings = function(all, currentIndex) {
   var nextSiblings = $(all).slice(currentIndex);
   $(nextSiblings).find('a.term-data-link').click(function() {
     var li = $(this).parents("li");
-    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href, li);
+    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li);
     termdata.load();
     return false;
   });
@@ -51,6 +57,8 @@ Drupal.TermData = function(tid, href, li) {
   this.href = href;
   this.tid = tid;
   this.li = li;
+  this.form_build_id = $(' :input[@name="form_build_id"]').val();
+  this.form_id = $(' :input[@name="form_id"]').val();
 }
 
 
@@ -58,9 +66,13 @@ Drupal.TermData = function(tid, href, li) {
  * loads ahah form from given link and displays it on the right side
  */
 Drupal.TermData.prototype.load = function() {
-  var url = this.href +'/true';
+  var url = this.href;
   var termdata = this;
-  $.get(url, null, function(data) {
+  var param = new Object();
+  param['form_build_id'] = this.form_build_id;
+  param['form_id'] = this.form_id;
+  
+  $.get(url, param, function(data) {
     termdata.div = $('#taxonomy-term-data');
     $(termdata.div).html(data);
     termdata.form();
@@ -77,6 +89,7 @@ Drupal.TermData.prototype.form = function() {
   try {
     Drupal.behaviors.textarea(this.div);
     Drupal.behaviors.autocomplete(this.div);
+    Drupal.behaviors.ahah(this.div);
   } catch(e) {} //autocomplete or textarea js not added to page
   
   this.param['tid'] = this.tid;

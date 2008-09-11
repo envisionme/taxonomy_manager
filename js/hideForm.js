@@ -7,12 +7,14 @@
 Drupal.behaviors.TaxonomyManagerHideForm = function(context) {
   var settings = Drupal.settings.hideForm || [];
   if (settings['div']) {
-    if (!(settings['div'] instanceof Array)) {
-      Drupal.attachHideForm(settings['div'], settings['show_button'], settings['hide_button']);
-    }
-    else {
-      for (var i=0; i<settings['div'].length; i++) {
-        Drupal.attachHideForm(settings['div'][i], settings['show_button'][i], settings['hide_button'][i]); 
+    if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+      if (!(settings['div'] instanceof Array)) {
+        Drupal.attachHideForm(settings['div'], settings['show_button'], settings['hide_button']);
+      }
+      else {
+        for (var i=0; i<settings['div'].length; i++) {
+          Drupal.attachHideForm(settings['div'][i], settings['show_button'][i], settings['hide_button'][i]); 
+        }
       }
     }
   }

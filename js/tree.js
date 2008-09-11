@@ -12,13 +12,17 @@ Drupal.behaviors.TaxonomyManagerTree = function(context) {
     if (!(settings['id'] instanceof Array)) {
        id = settings['id'];
        vid = settings['vid'];
-       new Drupal.TaxonomyManagerTree(id, vid);
+       if (!$('#'+ id + '.tm-processed').size()) {
+         new Drupal.TaxonomyManagerTree(id, vid);
+       }
     }
     else {
       for (var i = 0; i < settings['id'].length; i++) {
         id = settings['id'][i];
         vid = settings['vid'][i];
-        new Drupal.TaxonomyManagerTree(id, vid); 
+        if (!$('#'+ id + '.tm-processed').size()) {
+          new Drupal.TaxonomyManagerTree(id, vid); 
+        }
       }
     }
   }
@@ -26,7 +30,10 @@ Drupal.behaviors.TaxonomyManagerTree = function(context) {
   //only add throbber for TM sites
   var throbberSettings = Drupal.settings.TMAjaxThrobber || [];
   if (throbberSettings['add']) {
-    Drupal.attachThrobber(); 
+    if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+      $('#taxonomy-manager-toolbar').addClass('tm-processed');
+      Drupal.attachThrobber();
+    } 
   }
 }
 
@@ -40,6 +47,7 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.treeId = id;
   this.vocId = vid; 
 
+  $(this.div).addClass("tm-processed");
   this.attachTreeview(this.ul);
   this.attachChildForm();
   this.attachSiblingsForm();
@@ -135,8 +143,16 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
       tree.attachTreeview(ul);
       tree.attachSiblingsForm(ul);
       tree.attachChildForm(li);
-      Drupal.attachUpdateWeightTerms(li);
-      Drupal.attachTermData($(li).find("ul"));
+      
+      //only attach other features if enabled!
+      var weight_settings = Drupal.settings.updateWeight || [];
+      if (weight_settings['up']) {
+        Drupal.attachUpdateWeightTerms(li);
+      }
+      var term_data_settings = Drupal.settings.termData || [];
+      if (term_data_settings['url']) {
+        Drupal.attachTermData($(li).find("ul"));
+      }
       $(li).removeClass("has-children");
     });     
   }
@@ -206,8 +222,15 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
       tree.attachTreeviewToSiblings($('li', li.parentNode), currentIndex);
       tree.attachChildFormToSiblings($('li', li.parentNode), currentIndex);
       
-      Drupal.attachUpdateWeightTerms($('li', li.parentNode), currentIndex);
-      Drupal.attachTermDataToSiblings($('li', li.parentNode), currentIndex);
+      //only attach other features if enabled!
+      var weight_settings = Drupal.settings.updateWeight || [];
+      if (weight_settings['up']) {
+        Drupal.attachUpdateWeightTerms($('li', li.parentNode), currentIndex);
+      }
+      var term_data_settings = Drupal.settings.termData || [];
+      if (term_data_settings['url']) {
+        Drupal.attachTermDataToSiblings($('li', li.parentNode), currentIndex);
+      }
       
       $(li).removeClass("last").removeClass("has-more-siblings");
       $(li).find('.term-operations').hide();
@@ -305,7 +328,7 @@ Drupal.updateTreeDownTerm = function(downTerm) {
  */
 Drupal.attachThrobber = function() {
   var div = '#taxonomy-manager';
-  $('<div><img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25"></div>').hide()
+  $('<img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25">').hide()
     .ajaxStart(function(){
       $(this).show();
       $(div).css('opacity', '0.5');

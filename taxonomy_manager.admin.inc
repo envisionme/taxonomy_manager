@@ -38,7 +38,8 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   drupal_add_js($module_path .'js/termData.js');
   drupal_add_js('misc/textarea.js');  //because of term data form wich gets dynamically loaded
   
-  drupal_add_js(array('termData' => array('url' => url("admin/content/taxonomy_manager/termdata/edit/". $vid), 'tid' => $tid, 'term_url' => url(taxonomy_manager_tree_link($vid) .'/'. $tid .'/true'))), 'setting');
+  drupal_add_js(array('termData' => array('url' => url("admin/content/taxonomy_manager/termdata/edit/". $vid), 'tid' => $tid, 'term_url' => url('admin/content/taxonomy_manager/termdata/'. $vid))), 'setting');
+
   drupal_add_js(array('updateWeight' => array('up' => 'edit-weight-up', 'down' => 'edit-weight-down', 'url' => url('admin/content/taxonomy_manager/weight/'. $vid), 'disable_mouseover' => variable_get('taxonomy_manager_disable_mouseover', 0))), 'setting');
   drupal_add_js(array('TMAjaxThrobber' => array('add' => TRUE)), 'setting');
   
@@ -77,8 +78,6 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#title' => $voc->name,
     '#weight' => 10,
     '#tree' => TRUE,
-    '#prefix' => '<div id="taxonomy-manager-tree-outer-div">',
-    '#suffix' => '</div>',
   );
   
   $form['taxonomy']['manager']['tree'] = array( 
@@ -192,6 +191,27 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   if ($tid) {
     $form += taxonomy_manager_form_term_data($tid);
   }
+  else {
+    $form['term_data'] = array('#tree' => TRUE);
+  }
+  
+  // add save button for term_data already to the form array, 
+  // but do not render (see theme_taxonomy_manager_form) if not needed
+  // otherwise an #ahah callback on dynamically added forms makes problems
+  $form['term_data']['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save changes'),
+    '#submit' => array(''),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons save'),
+    '#ahah' => array(
+      'path' => 'admin/content/taxonomy_manager/termdata/edit',
+      'method' => 'replace',
+      'event' => 'click',
+      'wrapper' => 'taxonomy-term-data',
+    ),
+    '#weight' => 20,
+  );
+  
   
   return $form;
 }
@@ -209,10 +229,9 @@ function taxonomy_manager_confirm_delete($voc) {
   
   $form['delete'] = array(
     '#type' => 'fieldset',
+    '#attributes' => array('id' => 'del-confirm-form'),
     '#tree' => TRUE,
     '#title' => t('Confirmation'),
-    '#prefix' => '<div id="del-confirm-form">',
-    '#suffix' => '</div>',
   );
   
   $question = t('Are you sure you want to delete all selected terms? ');
@@ -267,9 +286,8 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   $form['add'] = array( 
     '#type' => 'fieldset', 
     '#tree' => TRUE,
+    '#attributes' => array('id' => 'add-form'),
     '#title' => t('Add new terms'),
-    '#prefix' => '<div id="add-form">',
-    '#suffix' => '</div>',
     '#description' => $description,
   );
   
@@ -328,10 +346,9 @@ function taxonomy_manager_merge_form($voc) {
   $form['merge'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
+    '#attributes' => array('id' => 'merge-form'),
     '#title' => t('Merging of terms'), 
     '#description' => $description,
-    '#prefix' => '<div id="merge-form">',
-    '#suffix' => '</div>', 
   );
   
   $form['merge']['main_term'] = array(
@@ -390,10 +407,9 @@ function taxonomy_manager_move_form($voc) {
   $form['move'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
+    '#attributes' => array('id' => 'move-form'),
     '#title' => t('Moving of terms'),
     '#description' => $description,
-    '#prefix' => '<div id="move-form">',
-    '#suffix' => '</div>',
   );
   
   if ($voc->hierarchy == 2) {
@@ -453,10 +469,9 @@ function taxonomy_manager_export_form($voc) {
   $form['export'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
+    '#attributes' => array('id' => 'export-form'),
     '#title' => t('CSV Export'),
     '#description' => $description,
-    '#prefix' => '<div id="export-form">',
-    '#suffix' => '</div>',
   );
 
   
@@ -515,20 +530,46 @@ function taxonomy_manager_export_form($voc) {
  * @param $tid
  * @param $ahah if true, return rendered form, else redirect
  */
-function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE) {
+function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $print = TRUE) {
   if (!$ahah) {
     drupal_goto('admin/content/taxonomy_manager/voc/'. $vid .'/'. $tid);
   }
-  $form_state = array();
   $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
   
-  $form = taxonomy_manager_form_term_data($tid);
+  $params = $_GET;
+
+  $form_state = array('submitted' => FALSE);
+  $form = form_get_cache($params['form_build_id'], $form_state);
+  unset($form['term_data']);
+  $form = form_builder($param['form_id'], $form, $form_state);
+  
+  $term_form = taxonomy_manager_form_term_data($tid);
+  $term_form['term_data']['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save changes'),
+    '#submit' => array(''),
+    '#attributes' => array('class' => 'taxonomy-manager-buttons save'),
+    '#ahah' => array(
+      'path' => 'admin/content/taxonomy_manager/termdata/edit',
+      'method' => 'replace',
+      'event' => 'click',
+      'wrapper' => 'taxonomy-term-data',
+    ),
+    '#weight' => 20,
+  );
+  $form += $term_form;
+
   drupal_prepare_form('taxonomy_manager_form', $form, $form_state);
   $form = form_builder('taxonomy_manager_form', $form, $form_state);
-  $output = drupal_render($form);
+  form_set_cache($params['form_build_id'], $form, $form_state);
   
-  print $output;
-  exit();
+  $output = drupal_render($form['term_data']);
+  
+  if ($print) {
+    print $output;
+    exit();
+  }
+  return $output;
 }
 
 /**
@@ -536,7 +577,7 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE) {
  *
  * @param $tid
  */
-function taxonomy_manager_form_term_data($tid) {
+function taxonomy_manager_form_term_data($tid) {  
   $term = taxonomy_get_term($tid);
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $vocabulary = taxonomy_vocabulary_load($term->vid);
@@ -556,7 +597,7 @@ function taxonomy_manager_form_term_data($tid) {
   );
   
   $form['term_data']['tid'] = array(
-    '#type' => 'value', 
+    '#type' => 'hidden', 
     '#value' => $tid,
   );
   
@@ -614,7 +655,9 @@ function taxonomy_manager_form_term_data($tid) {
     '#title' => t('Weight'), 
   );
   $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
-  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)));
+  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)));    
+  $form['term_data']['vid'] = array('#type' => 'value', '#value' => $term->vid);
+  
   return $form;
 }
 
@@ -675,7 +718,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
     $form['add_button'] = array( 
       '#value' => theme("image", $module_path ."images/list-add.png", "add", NULL, array('class' => $attr)), 
       '#prefix' => '<div class="term-data-autocomplete-add">',
-      '#suffix' => '</div><div class="clear"></div></div>',
+      '#suffix' => '</div></div>',
     );
   }
   
@@ -922,19 +965,23 @@ function taxonomy_manager_settings() {
  *
  * @param $vid
  */
-function taxonomy_manager_term_data_edit($vid) {
+function taxonomy_manager_term_data_edit() {
   $param = $_POST;
 
   $tid = $param['tid'];
+  if (!$tid) {
+    $tid = $param['term_data']['tid'];
+  }
   $values = $param['value'];
   $attr_type = $param['attr_type'];
   $op = $param['op'];
   
   $term = taxonomy_get_term($tid);
   
-  if ($term->vid != $vid) {
+  /*if ($term->vid != $vid) {
     return;
-  }
+  }  */
+  $vid = $term->vid;
   
   if ($op == 'add') {
     if ($attr_type == 'synonym') {
@@ -1016,10 +1063,13 @@ function taxonomy_manager_term_data_edit($vid) {
       }
       break;
   }
-
-  module_invoke_all('taxonomy', 'update', 'term', (array) taxonomy_get_term($tid));
+  $term = (array) taxonomy_get_term($tid);
+  $term['fields'] = $param['term_data']['fields'];
+  module_invoke_all('taxonomy', 'update', 'term', $term);
   module_invoke_all('taxonomy_manager_term_data_submit', $param, $values);
-  exit();
+  drupal_json(array('data' => taxonomy_manager_update_term_data_form($vid, $tid, TRUE, FALSE) ));
+  //taxonomy_manager_update_term_data_form($vid, $tid, TRUE);
+  exit;
 }
 /**
  * checks if voc has terms
@@ -1363,12 +1413,13 @@ function theme_taxonomy_manager_form($form) {
   $term_data = drupal_render($form['term_data']);
   $top = drupal_render($form);
   $output = $top . $pager;
-  $output .= '<div id="taxonomy-manager">';
+  $output .= '<div id="taxonomy-manager" class="admin clear-block">';
+  $output .= '<div id="taxonomy-manager-tree-outer-div" class="left clear-block">';
   $output .= $tree;
-  $output .= '<div id="taxonomy-term-data">';
-  $output .= $term_data;
   $output .= '</div>';
-  $output .= '<div class="clear"></div>';
+  $output .= '<div id="taxonomy-term-data" class="right clear-block">';
+  $output .= is_array($form['term_data']['tid']) ? $term_data : '';
+  $output .= '</div>';
   $output .= '</div>';
   
   return $output;

@@ -16,6 +16,7 @@
  * Implementation of hook_menu
  */
 function taxonomy_manager_menu() {
+
   $items['admin/content/taxonomy_manager'] = array(
     'title' => 'Taxonomy Manager',
     'description' => 'Administer vocabularies with the Taxonomy Manager',
@@ -816,7 +817,7 @@ function theme_taxonomy_manager_tree_elements($element) {
           $output .= '</div><div class="clear"></div></div>';
         }
         
-        $output .= '<div class="clear"> </div></div>';
+        $output .= '</div>';
         
         if (is_array($element[$tid]['children'])) {
           $output .= theme('taxonomy_manager_tree_elements', $element[$tid]['children']);
