@@ -82,7 +82,14 @@ function taxonomy_manager_menu() {
     'page arguments' => array('taxonomy_manager_settings'),
     'access arguments' => array('administer site configuration'),
     'file' => 'taxonomy_manager.admin.inc',
-  );  
+  ); 
+  
+  $items['admin/content/taxonomy_manager/toolbar/form'] = array(
+    'page callback' => 'taxonomy_manager_toolbar_forms', 
+    'access arguments' => array('administer taxonomy'),
+    'type' => MENU_CALLBACK, 
+    'file' => 'taxonomy_manager.admin.inc',
+  );
   return $items;
 }
 
@@ -117,6 +124,9 @@ function taxonomy_manager_theme() {
       'arguments' => array('element'), 
     ),
     'taxonomy_manager_tree_radio' => array( 
+      'arguments' => array('element'), 
+    ),
+    'taxonomy_manager_term_data_extra' => array( 
       'arguments' => array('element'), 
     ),
   );

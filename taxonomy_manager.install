@@ -29,3 +29,12 @@ function taxonomy_manager_schema() {
   );
   return $schema;
 }
+
+/**
+ * Implementation of hook_update_N().
+ *
+ * just run through the update process so that the menu and theme registry cache gets cleared
+ */
+function taxonomy_manager_update_6001() {
+  return array();
+}

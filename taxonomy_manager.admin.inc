@@ -141,6 +141,13 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#attributes' => array('class' => 'taxonomy-manager-buttons delete'),
     '#value' => t('Delete'),
     '#theme' => 'no_submit_button',
+    /*'#ahah' => array(
+      'path' => 'admin/content/taxonomy_manager/toolbar/form',
+      'method' => 'replace',
+      'event' => 'click',
+      'wrapper' => 'taxonomy-manager-toolbar-forms',
+      'progress' => array(),
+    ),*/
   );
 
   $form['toolbar']['add_show'] = array( 
@@ -177,6 +184,11 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#value' => '<div id="taxonomy-manager-toolbar-throbber"></div><div class="clear"></div>', 
     '#weight' => 20,
   );
+  $form['toolbar_forms_wrapper'] = array( 
+    '#type' => 'markup', 
+    '#value' => '<div id="taxonomy-manager-toolbar-forms"></div>', 
+  );
+  
   
   $form += taxonomy_manager_add_form($voc);
   
@@ -214,6 +226,25 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   
   
   return $form;
+}
+
+function taxonomy_manager_toolbar_forms() {
+  /*$params = $_GET;
+  $form = array();
+  $form_state = array('submitted' => FALSE);
+  $form = form_get_cache($params['form_build_id'], $form_state);
+  
+  $form += taxonomy_manager_confirm_delete($form['vid']);
+  $form = form_builder($param['form_id'], $form, $form_state);
+  drupal_prepare_form($param['form_id'], $form, $form_state);
+  $form = form_builder($param['form_id'], $form, $form_state);
+  form_set_cache($params['form_build_id'], $form, $form_state);
+
+  $output = drupal_render($form['delete']);
+  
+
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
+  exit;*/
 }
 
 /**
@@ -537,11 +568,13 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $prin
   $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
   
   $params = $_GET;
-
-  $form_state = array('submitted' => FALSE);
+  
+  //actually we don not need do use the caching because the saving only happens through a AJAX callback
+  //and it's a bit faster, cache loading, form building and cache saving needs some time else.
+  /*$form_state = array('submitted' => FALSE);
   $form = form_get_cache($params['form_build_id'], $form_state);
   unset($form['term_data']);
-  $form = form_builder($param['form_id'], $form, $form_state);
+  $form = form_builder($param['form_id'], $form, $form_state);*/
   
   $term_form = taxonomy_manager_form_term_data($tid);
   $term_form['term_data']['save'] = array(
@@ -557,11 +590,11 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $prin
     ),
     '#weight' => 20,
   );
-  $form += $term_form;
+  $form = $term_form;
 
   drupal_prepare_form('taxonomy_manager_form', $form, $form_state);
   $form = form_builder('taxonomy_manager_form', $form, $form_state);
-  form_set_cache($params['form_build_id'], $form, $form_state);
+  //form_set_cache($params['form_build_id'], $form, $form_state);
   
   $output = drupal_render($form['term_data']);
   
@@ -596,10 +629,7 @@ function taxonomy_manager_form_term_data($tid) {
     '#tree' => TRUE,
   );
   
-  $form['term_data']['tid'] = array(
-    '#type' => 'hidden', 
-    '#value' => $tid,
-  );
+  $form['term_data']['tid'] = array('#type' => 'hidden', '#value' => $tid);
   
   $form['term_data']['name'] = array(
     '#type' => 'textfield',
@@ -609,42 +639,29 @@ function taxonomy_manager_form_term_data($tid) {
     '#maxlength' => 255,
     '#required' => TRUE,
     '#weight' => -20,
-    '#prefix' => '<div id="term-data-name-field">',
-    '#suffix' => '</div>',
   );
-  
-  $form['term_data']['save_name'] = array( 
-    '#value' => theme("image", $module_path ."images/document-save.png", "save", NULL),
-    '#prefix' => '<div id="term-data-name-save">',
-    '#suffix' => '</div><div class="clear"></div>', 
-  );
-  
+
   $form['term_data']['description'] = array(
     '#type' => 'textarea',
     '#title' => t('Description'),
     '#default_value' => $term->description,
     '#cols' => 35,
     '#rows' => 4,
-    '#prefix' => '<div id="term-data-description"><div id="term-data-description-field">',
-    '#suffix' => '</div>',
-  );
-  
-  $form['term_data']['save_description'] = array( 
-    '#value' => theme("image", $module_path ."images/document-save.png", "save", NULL),
-    '#prefix' => '<div id="term-data-description-save">',
-    '#suffix' => '</div></div><div class="clear"></div>', 
   );
   
   $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_synonyms($term->tid), t('Synonyms'), 'synonym', FALSE); 
   $form['term_data']['synonyms']['#tree'] = TRUE;
+  $form['term_data']['synonyms']['#weight'] = '50';
   
   $form['term_data']['relations'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_related($term->tid), t('Relations'), 'related'); 
   $form['term_data']['relations']['#tree'] = TRUE;
+  $form['term_data']['relations']['#weight'] = '51';
   
   $parents = taxonomy_get_parents($term->tid);
   $p_add = TRUE;
   $form['term_data']['parents'] = _taxonomy_manager_form_term_data_lists($term, $parents, t('Parents'), 'parent', TRUE); 
   $form['term_data']['parents']['#tree'] = TRUE;
+  $form['term_data']['parents']['#weight'] = '52';
   
   $form['term_data']['weight'] = array( 
     '#type' => 'weight', 
@@ -655,7 +672,7 @@ function taxonomy_manager_form_term_data($tid) {
     '#title' => t('Weight'), 
   );
   $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
-  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)));    
+  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '53');    
   $form['term_data']['vid'] = array('#type' => 'value', '#value' => $term->vid);
   
   return $form;
@@ -676,8 +693,9 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $rows = array();
   
+  $form['#theme'] = 'taxonomy_manager_term_data_extra';
+  $form['data'] = array();
   foreach ($values as $tid => $value) {
-    $row = array();
     if (is_object($value)) {
       $name = $value->name;
       $id = $value->tid;
@@ -686,39 +704,35 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       $name = $value;
       $id = $value;
     }
-    $row[] = array(
-      'data' => $name, 
-      'class' => 'taxonomy-term-data-name',
-      'id' => 'term-'. $id, 
+    $form['data'][$id][] = array(
+      '#value' => $name, 
+      '#row-class' => 'taxonomy-term-data-name',
+      '#row-id' => 'term-'. $id, 
     );
-    $row[] = array(
-      'data' => theme("image", $module_path ."images/list-remove.png", "term-remove", NULL, array('class' => $attr)), 
-      'class' => 'taxonomy-term-data-operations', 
+    $form['data'][$id][] = array(
+      '#value' => theme("image", $module_path ."images/list-remove.png", "term-remove", NULL, array('class' => $attr)), 
+      '#row-class' => 'taxonomy-term-data-operations',
     );
-    $rows[] = $row;
   }
-  
-  $headers = array(t('!type', array('!type' => $header_type)), '');
-  
-  
-  $form['list'] = array( 
-    '#value' => theme('table', $headers, $rows, array('class' => 'taxonomy-term-data-table')),
-  );
+  $form['headers'][] = array('#value' => $header_type);
+  $form['headers'][] = array('#value' => '');
+
+  $form['op'] = array();
   if ($add) {
-    $form['add'] = array( 
+    $form['op']['add'] = array( 
       '#type' => 'textfield',
-      '#prefix' => '<div class="term-data-autocomplete-line"><div class="term-data-autocomplete">',
+      '#prefix' => '<div class="term-data-autocomplete">',
       '#suffix' => '</div>',
       '#size' => 35,
     );
     if ($autocomplete) {
-      $form['add']['#autocomplete_path'] = 'taxonomy/autocomplete/'. $term->vid;
+      $form['op']['add']['#autocomplete_path'] = 'taxonomy/autocomplete/'. $term->vid;
     }
   
-    $form['add_button'] = array( 
+    $form['op']['add_button'] = array( 
       '#value' => theme("image", $module_path ."images/list-add.png", "add", NULL, array('class' => $attr)), 
       '#prefix' => '<div class="term-data-autocomplete-add">',
-      '#suffix' => '</div></div>',
+      '#suffix' => '</div>',
     );
   }
   
@@ -976,11 +990,13 @@ function taxonomy_manager_term_data_edit() {
   $attr_type = $param['attr_type'];
   $op = $param['op'];
   
+  if ($op == "Save changes") {
+    db_query("UPDATE {term_data} SET name = '%s' WHERE tid = %d", $param['term_data']['name'], $tid);
+    db_query("UPDATE {term_data} SET description = '%s' WHERE tid = %d", $param['term_data']['description'], $tid);
+  }
+
   $term = taxonomy_get_term($tid);
-  
-  /*if ($term->vid != $vid) {
-    return;
-  }  */
+
   $vid = $term->vid;
   
   if ($op == 'add') {
@@ -1003,15 +1019,7 @@ function taxonomy_manager_term_data_edit() {
     }
   }
   
-  switch ($attr_type) {
-    case 'name': 
-      db_query("UPDATE {term_data} SET name = '%s' WHERE tid = %d", $values, $tid);
-      break;
-      
-    case 'description': 
-      db_query("UPDATE {term_data} SET description = '%s' WHERE tid = %d", $values, $tid);
-      break;
-    
+  switch ($attr_type) {    
     case 'parent':
       if (!is_array($values)) $values = array($values);
       foreach ($values as $value) {
@@ -1468,4 +1476,35 @@ function theme_taxonomy_manager_image_button($element) {
  
   return $return_string;
 
+}
+
+function theme_taxonomy_manager_term_data_extra($element) {
+  $rows = array();
+  $headers = array();
+  foreach (element_children($element['headers']) as $key) {
+    if (is_array($element['headers'][$key])) {
+      $headers[] = drupal_render($element['headers'][$key]);
+    }
+  }
+  foreach ($element['data'] as $tid => $entries) {
+    $row = array();
+    foreach (element_children($element['data'][$tid]) as $key) {
+      if (is_array($element['data'][$tid][$key])) {
+        $row[] = array(
+          'data' => drupal_render($element['data'][$tid][$key]), 
+          'class' => $element['data'][$tid][$key]['#row-class'],
+          'id' => $element['data'][$tid][$key]['#row-id'],
+        );
+      }
+    }
+    $rows[] = $row;
+  }
+  $row = array();
+  foreach (element_children($element['op']) as $key) {
+    if (is_array($element['op'][$key])) {
+      $row[] = drupal_render($element['op'][$key]);
+    } 
+  }
+  $rows[] = $row;
+  return theme('table', $headers, $rows);
 }
