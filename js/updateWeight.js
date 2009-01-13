@@ -9,7 +9,8 @@ var weights = new Object();
 
 Drupal.behaviors.TaxonomyManagerWeights = function(context) {
   var settings = Drupal.settings.updateWeight || [];
-  if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+  if (!$('#taxonomy-manager-toolbar' + '.tm-weights-processed').size()) {
+    $('#taxonomy-manager-toolbar').addClass('tm-weights-processed');
     Drupal.attachUpdateWeightToolbar(settings['up'], settings['down']);
     Drupal.attachUpdateWeightTerms();   
   }  

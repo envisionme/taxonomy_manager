@@ -4,13 +4,17 @@
  * @file js support for term editing form for ajax saving and tree updating
  */
 
+//global var that holds the current term link object
+var active_term = new Object();
+
 Drupal.behaviors.TaxonomyManagerTermData = function(context) {
   //use tree settings....
   var settings = Drupal.settings.taxonomytree || [];
   if (settings['id']) {
     
     if (!(settings['id'] instanceof Array)) {
-      if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+      if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) {
+        $('#taxonomy-manager-toolbar').addClass('tm-termData-processed');
         var ul = $('#'+ settings['id']).find("ul");
         Drupal.attachTermData(ul);
       }
@@ -30,11 +34,23 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
  */
 Drupal.attachTermData = function(ul) {
   $(ul).find('a.term-data-link').click(function() {
+    Drupal.activeTermSwapHighlight(this);
     var li = $(this).parents("li");
     var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li);
     termdata.load();
     return false;
   });
+}
+
+/**
+* hightlights current term
+*/
+Drupal.activeTermSwapHighlight = function(link) {
+  try {
+    $(active_term).parents('.term-item').removeClass('highlightActiveTerm');
+  } catch(e) {}
+  active_term = link;
+  $(active_term).parents('.term-item').addClass('highlightActiveTerm');
 }
 
 /**

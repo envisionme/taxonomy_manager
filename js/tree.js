@@ -33,6 +33,7 @@ Drupal.behaviors.TaxonomyManagerTree = function(context) {
     if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
       $('#taxonomy-manager-toolbar').addClass('tm-processed');
       Drupal.attachThrobber();
+      Drupal.attachResizeableTreeDiv();
     } 
   }
 }
@@ -338,4 +339,30 @@ Drupal.attachThrobber = function() {
       $(div).css('opacity', '1');
     })
     .appendTo("#taxonomy-manager-toolbar-throbber"); 
+}
+
+/**
+* makes the div resizeable
+*/
+Drupal.attachResizeableTreeDiv = function() {
+  var div = $('#taxonomy-manager-tree-outer-div'), staticOffset = null;
+ 
+  $('#taxonomy-manager-tree-size .div-grippie').mousedown(startDrag);
+ 
+  function startDrag(e) {
+    staticOffset = div.width() - e.pageX;
+    div.css('opacity', 0.5);
+    $(document).mousemove(performDrag).mouseup(endDrag);
+    return false;
+  }
+ 
+  function performDrag(e) {
+    div.width(Math.max(200, staticOffset + e.pageX) + 'px');
+    return false;
+  }
+ 
+  function endDrag(e) {
+    $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+    div.css('opacity', 1);
+  }
 }

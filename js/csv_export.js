@@ -6,7 +6,8 @@
 
 Drupal.behaviors.TaxonomyManagerCSVExport = function(context) {
   
-  if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+  if (!$('#taxonomy-manager-toolbar' + '.tm-csv-processed').size()) {
+    $('#taxonomy-manager-toolbar').addClass('tm-csv-processed');
     var url = Drupal.settings.exportCSV['url'];
     var vid = Drupal.settings.taxonomytree['vid'];
   
@@ -14,6 +15,7 @@ Drupal.behaviors.TaxonomyManagerCSVExport = function(context) {
       var area = $("#edit-export-csv");
       var param = new Object();
       param['delimiter'] = $("#edit-export-delimiter").val();
+      param['depth'] = $("#edit-export-depth").val();
       param['option'] = $("#taxonomy_manager_export_options").find("input[@type=radio][@checked]").val();
       param['vid'] = vid;
       var tid = 0;

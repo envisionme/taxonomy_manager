@@ -7,7 +7,8 @@
 Drupal.behaviors.TaxonomyManagerHideForm = function(context) {
   var settings = Drupal.settings.hideForm || [];
   if (settings['div']) {
-    if (!$('#taxonomy-manager-toolbar' + '.tm-processed').size()) {
+    if (!$('#taxonomy-manager-toolbar' + '.tm-hideForm-processed').size()) {
+      $('#taxonomy-manager-toolbar').addClass('tm-hideForm-processed');
       if (!(settings['div'] instanceof Array)) {
         Drupal.attachHideForm(settings['div'], settings['show_button'], settings['hide_button']);
       }

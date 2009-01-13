@@ -90,6 +90,14 @@ function taxonomy_manager_menu() {
     'type' => MENU_CALLBACK, 
     'file' => 'taxonomy_manager.admin.inc',
   );
+  
+  $items['taxonomy_manager/autocomplete'] = array(
+    'title' => 'Taxonomy Manager Autocomplete',
+    'page callback' => 'taxonomy_manager_autocomplete_load',
+    'access arguments' => array('administer taxonomy'),
+    'type' => MENU_CALLBACK,
+    'file' => 'taxonomy_manager.admin.inc',
+  );
   return $items;
 }
 
@@ -459,6 +467,7 @@ function taxonomy_manager_tree_build_form(&$index, $tree, &$form, $root_form, $p
     if ($root_form['#add_term_info']) {
       $form[$term->tid]['weight'] = array('#type' => 'hidden', '#value' => $term->weight, '#attributes' => array('class' => 'weight-form'));
       $form[$term->tid]['tid'] = array('#type' => 'hidden', '#value' => $term->tid, '#attributes' => array('class' => 'term-id'));
+      $form[$term->tid]['checkbox']['#extra_info'] = taxonomy_manager_tree_term_extra_info($term);
     }
 
     if (!empty($root_form['#operations_callback'])) {
@@ -502,7 +511,7 @@ function taxonomy_manager_tree_build_form(&$index, $tree, &$form, $root_form, $p
       }
     }
     else {
-      if (_taxonomy_manager_tree_term_has_children($term->tid)) {
+      if (_taxonomy_manager_tree_term_children_count($term->tid) > 0) {
         $form[$term->tid]['#attributes']['class'] .= 'has-children ';
         if ($index-1 == count($tree)-1) {
           $form[$term->tid]['#attributes']['class'] .= 'lastExpandable ';
@@ -564,17 +573,37 @@ function _taxonomy_manager_tree_term_get_class($current_index, $tree, $expand) {
 }
 
 /**
- * checks if a term has children
- *
  * @param $tid
- * @return true, if term has children, else false
+ * @return children count
  */
-function _taxonomy_manager_tree_term_has_children($tid) {
-  $count = db_result(db_query("SELECT COUNT(tid) FROM {term_hierarchy} WHERE parent = %d", $tid));
-  if ($count == 0) {
-    return false;
+function _taxonomy_manager_tree_term_children_count($tid) {
+  return db_result(db_query("SELECT COUNT(tid) FROM {term_hierarchy} WHERE parent = %d", $tid));
+}
+
+/**
+* returns some additional information about the term which gets added to the link title
+*/
+function taxonomy_manager_tree_term_extra_info($term) {
+  $extra_info = "";
+  $term_children_count = _taxonomy_manager_tree_term_children_count($term->tid);
+  $term_parents = taxonomy_get_parents_all($term->tid);
+ 
+  if ($term_children_count > 0) {
+    $extra_info = 'Children Count: '. $term_children_count;
   }
-  return true;
+  
+  if (count($term_parents) > 1) {
+    $extra_info .= !empty($extra_info) ? ' | ' : '';
+    $extra_info .= 'Parents: ';
+    $p_names = array();
+    foreach ($term_parents as $p) {
+      if ($p->tid != $term->tid) {
+        $p_names[] = check_plain($p->name);
+      }
+    }
+    $extra_info .= implode(', ', $p_names);
+  }
+  return $extra_info;
 }
 
 /**
@@ -701,11 +730,13 @@ function _taxonomy_manager_tree_sub_forms_set_parents($tree_id, $parent, &$form)
     $form['#parents'][] = $id;
   }
   if ($parent) {
-    $all_parents = taxonomy_get_parents_all($parent);
+    $form['#parents'][] = $parent;
+    $form['#parents'][] = 'children';
+    /*$all_parents = taxonomy_get_parents_all($parent);
     for ($i=count($all_parents)-1; $i >= 0; $i--) {
       $form['#parents'][] = $all_parents[$i]->tid;
       $form['#parents'][] = 'children';
-    }
+    }*/
   }
 }
 
@@ -861,7 +892,12 @@ function theme_taxonomy_manager_tree_checkbox($element) {
   
   $title = $element['#title'];
   if ($element['#link']) {
-    $title = l($title, $element['#link'], array('attributes' => array("class" => "term-data-link")));
+    $attr = array();
+    $attr["class"] = "term-data-link";
+    if (isset($element['#extra_info'])) {
+      $attr["title"] = $element['#extra_info'];
+    }
+    $title = $title = l($title, $element['#link'], array('attributes' => $attr));
   }
   
   if (!is_null($title)) {

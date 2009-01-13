@@ -1,8 +1,4 @@
 
-
-#taxonomy-manager-form {
-}
-
 /**
  * Taxonomy Manager Tree formating
  */
@@ -14,6 +10,17 @@
 #taxonomy-manager-tree-outer-div fieldset {
   margin: 0;
   padding: 5px;
+}
+
+#taxonomy-manager-tree-size {
+  padding: 0px;
+  margin: 0px;
+  height: 7px;
+  text-align: right;
+}
+
+#taxonomy-manager-tree-size img {
+  cursor: pointer;
 }
 
 .treeview, .treeview ul {
@@ -57,6 +64,7 @@
 
 .term-item {
   display: inline;
+  padding-right: 5px;
 }
 
 .term-has-more-siblings {
@@ -92,12 +100,16 @@
   text-decoration: none;
 }
 
+.highlightActiveTerm{
+  background-color:#efefef;
+}
+.highlightActiveTerm a{
+  font-weight: bold;
+}
+
 /**
  * Taxonomy Manger Toolbar
  */
-#taxonomy-manager-toolbar{
-}
-
 #taxonomy-manager-toolbar-throbber {
   float: right;
   margin: 0px;
@@ -197,22 +209,9 @@ input.save {
 #taxonomy-term-data-fieldset {
   margin-top: 0;
 }
-
-.taxonomy-term-data-table {
-}
-
-.taxonomy-term-data-name {
-}
-
 .taxonomy-term-data-operations {
   cursor: pointer;
 }
-
-.taxonomy-term-data-table td {
-}
-.taxonomy-term-data-table th {
-}
-
 
 .term-data-autocomplete {
   display: inline;
@@ -253,21 +252,6 @@ input.save {
 
 #term-data-description-field {
   float: left;
-}
-
-#term-data-description-field .resizable-textarea {
-}
-
-#term-data-description-field .form-item {
-}
-
-#term-data-description-field textarea {
-}
-
-#edit-term-data-description textarea {
-}
-
-#edit-term-data-description {
 }
 
 

@@ -5,6 +5,9 @@
  * list of vocabularies, which link to Taxonomy Manager interface
  */
 function taxonomy_manager_voc_list() {
+  $output = l(t('Add new vocabulary'), 'admin/content/taxonomy/add/vocabulary') .' | ';
+  $output .= l(t('Edit vocabulary settings'), 'admin/content/taxonomy') .'<br /><br />';
+  
   $vocabularies = taxonomy_get_vocabularies();
   $voc_list = array();
   
@@ -14,7 +17,8 @@ function taxonomy_manager_voc_list() {
   if (!count($voc_list)) {
     $voc_list[] = t('No Vocabularies available');
   }
-  return theme('item_list', $voc_list, t("Vocabularies:"));
+  $output .= theme('item_list', $voc_list, t("Vocabularies:"));
+  return $output;
 }
 
 /**
@@ -25,7 +29,6 @@ function taxonomy_manager_voc_list() {
  * @param $search_string a string to filter root level terms
  */
 function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
-  
   // Check for confirmation forms.
   if (isset($form_state['confirm_delete'])) {
     return taxonomy_manager_term_confirm_delete($form_state, $vid);
@@ -80,6 +83,8 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#tree' => TRUE,
   );
   
+  $form['taxonomy']['manager']['markup'] = array('#value' => '<div id="taxonomy-manager-tree-size">'. theme("image", $module_path ."images/grippie.png", "decrease tree window size", NULL, array('class' => "div-grippie")) .'</div>');
+  
   $form['taxonomy']['manager']['tree'] = array( 
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
@@ -103,7 +108,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   $form['search']['field'] = array( 
     '#type' => 'textfield', 
     '#title' => t('Search String'), 
-    '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
+    '#autocomplete_path' => 'taxonomy_manager/autocomplete/'. $voc->vid,
     '#prefix' => '<div id="edit-find-field">', 
     '#suffix' => '</div>', 
   );
@@ -386,7 +391,7 @@ function taxonomy_manager_merge_form($voc) {
     '#type' => 'textfield',
     '#title' => t('Resulting merged term'),
     '#required' => FALSE,
-    '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
+    '#autocomplete_path' => 'taxonomy_manager/autocomplete/'. $voc->vid,
   );
   
   $options = array();
@@ -452,7 +457,7 @@ function taxonomy_manager_move_form($voc) {
     '#title' => t('Parent term(s)'),
     '#description' => $auto_description,
     '#required' => FALSE,
-    '#autocomplete_path' => 'taxonomy/autocomplete/'. $voc->vid,
+    '#autocomplete_path' => 'taxonomy_manager/autocomplete/'. $voc->vid,
   );
   
   $options = array();
@@ -524,6 +529,12 @@ function taxonomy_manager_export_form($voc) {
     '#default_value' => 'whole_voc',
     '#prefix' => '<div id="taxonomy_manager_export_options">',
     '#suffix' => '</div>',
+  );
+  
+  $form['export']['depth'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Depth of tree'),
+    '#description' => t('The number of levels of the tree to export. Leave empty to return all levels.'),
   );
   
   $form['export']['csv'] = array(
@@ -699,13 +710,14 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
     if (is_object($value)) {
       $name = $value->name;
       $id = $value->tid;
+      $vid = $value->vid;
     }
     else {
       $name = $value;
       $id = $value;
     }
     $form['data'][$id][] = array(
-      '#value' => $name, 
+      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid .'/'. $id) : $name,
       '#row-class' => 'taxonomy-term-data-name',
       '#row-id' => 'term-'. $id, 
     );
@@ -726,7 +738,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       '#size' => 35,
     );
     if ($autocomplete) {
-      $form['op']['add']['#autocomplete_path'] = 'taxonomy/autocomplete/'. $term->vid;
+      $form['op']['add']['#autocomplete_path'] = 'taxonomy_manager/autocomplete/'. $term->vid;
     }
   
     $form['op']['add_button'] = array( 
@@ -934,7 +946,6 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
     form_set_error('merge', t("Please select less than 50 terms to merge. Merging to many terms in one step can cause timeouts and inconsistent database states"));
     $form_state['rebuild'] = TRUE;
   }
-  
 }
 
 /**
@@ -1160,6 +1171,7 @@ function taxonomy_manager_move($parents, $children, $options = array()) {
       db_query("DELETE FROM {term_hierarchy} WHERE tid = %d", $child);
     }
     foreach ($parents as $parent) {
+      db_query("DELETE FROM {term_hierarchy} WHERE parent = %d AND tid = %d", $parent, $child); //prevent duplicated sql errors
       db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (%d, %d)", $parent, $child);
     }
   }
@@ -1356,7 +1368,8 @@ function taxonomy_manager_update_weights($vid) {
  */
 function taxonomy_manager_export() {
   $edit = $_POST;
-  $output = taxonomy_manager_export_csv($edit['delimiter'], $edit['vid'], $edit['tid'], array($edit['option'] => TRUE));
+  $depth = empty($edit['depth']) ? NULL : $edit['depth'];
+  $output = taxonomy_manager_export_csv($edit['delimiter'], $edit['vid'], $edit['tid'], $depth, array($edit['option'] => TRUE));
   print $output;
   exit();
 }
@@ -1364,9 +1377,8 @@ function taxonomy_manager_export() {
 /** 
  * Generates the CVS Ouput
  */
-function taxonomy_manager_export_csv($delimiter = ";", $vid, $selected_tid = 0, $options = array()) {
-  $tree = taxonomy_manager_export_get_tree($vid, $selected_tid, $options);
-
+function taxonomy_manager_export_csv($delimiter = ";", $vid, $selected_tid = 0, $depth = NULL, $options = array()) {
+  $tree = taxonomy_manager_export_get_tree($vid, $selected_tid, $depth, $options);  
   foreach ($tree as $term) {
     $array = array();
     $array[] = '"'. $term->vid .'"';
@@ -1384,14 +1396,14 @@ function taxonomy_manager_export_csv($delimiter = ";", $vid, $selected_tid = 0, 
 /**
  * Helper for cvs export to get taxonomy tree
  */
-function taxonomy_manager_export_get_tree($vid, $selected_tid, $options) {
+function taxonomy_manager_export_get_tree($vid, $selected_tid, $depth, $options) {
   $tree = array();
 
   if ($options['whole_voc']) {
-    $tree = taxonomy_get_tree($vid);
+    $tree = taxonomy_get_tree($vid, 0, -1, $depth);
   }
   else if ($options['children'] && $selected_tid) {
-    $tree = taxonomy_get_tree($vid, $selected_tid);
+    $tree = taxonomy_get_tree($vid, $selected_tid, -1, $depth);
   }
   else if ($options['root_terms']) {
     $tree = taxonomy_get_tree($vid, 0, -1, 1);
@@ -1410,6 +1422,38 @@ function taxonomy_manager_update_voc($vid, $parents = array()) {
     $voc['hierarchy'] = $current_hierarchy;
     taxonomy_save_vocabulary($voc);
   }
+}
+
+/**
+ * Retrieve a pipe delimited string of autocomplete suggestions (+synonyms)
+ */
+function taxonomy_manager_autocomplete_load($vid, $string = '') {  
+  // The user enters a comma-separated list of tags. We only autocomplete the last tag.
+  $array = drupal_explode_tags($string);
+
+  // Fetch last tag
+  $last_string = trim(array_pop($array));
+  $matches = array();
+  if ($last_string != '') {
+    $result = db_query_range(db_rewrite_sql("SELECT t.name FROM {term_data} t 
+      LEFT JOIN {term_synonym} s ON t.tid = s.tid
+      WHERE t.vid = %d 
+      AND (LOWER(t.name) LIKE LOWER('%%%s%%') OR LOWER(s.name) LIKE LOWER('%%%s%%'))", 't', 'tid'),
+      $vid, $last_string, $last_string, 0, 10);
+    
+    $prefix = count($array) ? '"'. implode('", "', $array) .'", ' : '';
+
+    while ($tag = db_fetch_object($result)) {
+      $n = $tag->name;
+      // Commas and quotes in terms are special cases, so encode 'em.
+      if (strpos($tag->name, ',') !== FALSE || strpos($tag->name, '"') !== FALSE) {
+        $n = '"'. str_replace('"', '""', $tag->name) .'"';
+      }
+      $matches[$prefix . $n] = check_plain($tag->name);
+    }
+  }
+
+  drupal_json($matches);
 }
 
 /**
