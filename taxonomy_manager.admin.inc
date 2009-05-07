@@ -809,6 +809,7 @@ function taxonomy_manager_form_add_submit($form, &$form_state) {
     $term['parent'] = $selected_tids;
     taxonomy_save_term($term);
   }
+
   taxonomy_manager_update_voc($form_state['values']['vid'], $selected_tids);
   drupal_set_message("Terms added: ". check_plain(implode(', ', $terms)));
 }
@@ -1417,7 +1418,10 @@ function taxonomy_manager_export_get_tree($vid, $selected_tid, $depth, $options)
  */
 function taxonomy_manager_update_voc($vid, $parents = array()) {
   $voc = (array) taxonomy_vocabulary_load($vid);
-  $current_hierarchy = count($parents) == 1 ? 1 : 2;
+  $current_hierarchy = count($parents);
+  if ($current_hierarchy > 2) {
+     $current_hierarchy = 2;
+  }
   if ($current_hierarchy > $voc['hierarchy']) {
     $voc['hierarchy'] = $current_hierarchy;
     taxonomy_save_vocabulary($voc);
