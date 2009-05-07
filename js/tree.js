@@ -43,8 +43,8 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.div = $("div#"+ id);
   this.ul = $(this.div).find("ul");
   this.form = $(this.ul).parents('form');
-  this.form_build_id = $(this.form).find(':input[@name="form_build_id"]').val();
-  this.form_id = $(this.form).find(' :input[@name="form_id"]').val();
+  this.form_build_id = $(this.form).find(':input[name="form_build_id"]').val();
+  this.form_id = $(this.form).find(' :input[name="form_id"]').val();
   this.treeId = id;
   this.vocId = vid; 
 
@@ -263,7 +263,7 @@ Drupal.TaxonomyManagerTree.prototype.attachTreeviewToSiblings = function(all, cu
  * helper function for getting out the current page
  */
 Drupal.getPage = function(li) { 
-  return $(li).find("input:hidden[@class=page]").attr("value");
+  return $(li).find("input:hidden[class=page]").attr("value");
 }
 
 
@@ -271,7 +271,7 @@ Drupal.getPage = function(li) {
  * returns terms id of a given list element
  */
 Drupal.getTermId = function(li) {
-  return $(li).find("input:hidden[@class=term-id]").attr("value");
+  return $(li).find("input:hidden[class=term-id]").attr("value");
 }
 
 /**

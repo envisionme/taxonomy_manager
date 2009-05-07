@@ -132,7 +132,7 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
  */
 Drupal.getSelectedTerms = function() {
   var terms = new Array();
-  $('.treeview').find("input[@type=checkbox][@checked]").each(function() {
+  $('.treeview').find("input[type=checkbox][checked]").each(function() {
     var term = $(this).parents("li").eq(0);
     terms.push(term);
   });
@@ -229,7 +229,7 @@ Drupal.getWeight = function(li) {
     weight = weights[id];
   }
   else {
-    weight = $(li).find("input:hidden[@class=weight-form]").attr("value");
+    weight = $(li).find("input:hidden[class=weight-form]").attr("value");
   }
   
   return weight;

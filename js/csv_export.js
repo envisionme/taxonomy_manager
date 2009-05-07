@@ -16,10 +16,10 @@ Drupal.behaviors.TaxonomyManagerCSVExport = function(context) {
       var param = new Object();
       param['delimiter'] = $("#edit-export-delimiter").val();
       param['depth'] = $("#edit-export-depth").val();
-      param['option'] = $("#taxonomy_manager_export_options").find("input[@type=radio][@checked]").val();
+      param['option'] = $("#taxonomy_manager_export_options").find("input[type=radio][checked]").val();
       param['vid'] = vid;
       var tid = 0;
-      $('.treeview').find("input[@type=checkbox][@checked]").each(function() {
+      $('.treeview').find("input[type=checkbox][checked]").each(function() {
        tid = Drupal.getTermId($(this).parents("li").eq(0));
       });
       param['tid'] = tid;

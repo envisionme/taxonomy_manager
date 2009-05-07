@@ -73,8 +73,8 @@ Drupal.TermData = function(tid, href, li) {
   this.href = href;
   this.tid = tid;
   this.li = li;
-  this.form_build_id = $(' :input[@name="form_build_id"]').val();
-  this.form_id = $(' :input[@name="form_id"]').val();
+  this.form_build_id = $(' :input[name="form_build_id"]').val();
+  this.form_id = $(' :input[name="form_id"]').val();
 }
 
 
@@ -207,7 +207,7 @@ Drupal.TermData.prototype.update = function() {
 Drupal.TermData.prototype.updateTermName = function() {
   var name = this.param['value'];
   $('fieldset#taxonomy-term-data-fieldset legend').html(name);
-  $('ul.treeview li input:hidden[@class=term-id][@value='+ this.tid +']')
+  $('ul.treeview li input:hidden[class=term-id][value='+ this.tid +']')
     .siblings('div.term-item')
     .find('div.form-item label.option a').html(name);
 }
