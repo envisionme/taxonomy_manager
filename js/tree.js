@@ -329,16 +329,16 @@ Drupal.updateTreeDownTerm = function(downTerm) {
  */
 Drupal.attachThrobber = function() {
   var div = '#taxonomy-manager';
-  $('<img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25">').hide()
-    .ajaxStart(function(){
+ var throbber = $('<img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25">');
+  throbber.appendTo("#taxonomy-manager-toolbar-throbber").hide();
+  throbber.ajaxStart(function(){
       $(this).show();
       $(div).css('opacity', '0.5');
     })
     .ajaxStop(function(){
       $(this).hide();
       $(div).css('opacity', '1');
-    })
-    .appendTo("#taxonomy-manager-toolbar-throbber"); 
+    });
 }
 
 /**
