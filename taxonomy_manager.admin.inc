@@ -181,13 +181,13 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#attributes' => array('class' => 'taxonomy-manager-buttons export'),
     '#value' => t('CSV Export'), 
     '#theme' => 'no_submit_button', 
-    '#suffix' => '</div>'
   );
   
   $form['toolbar']['wrapper'] = array( 
     '#type' => 'markup', 
     '#value' => '<div id="taxonomy-manager-toolbar-throbber"></div><div class="clear"></div>', 
     '#weight' => 20,
+    '#prefix' => '</div>',
   );
   $form['toolbar_forms_wrapper'] = array( 
     '#type' => 'markup', 
