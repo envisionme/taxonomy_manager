@@ -239,6 +239,17 @@ function taxonomy_manager_term_page($str_tids = '', $depth = 0, $op = 'page') {
      $operator = '+';
    }
    $new_tids_str = implode($operator, $new_tids);
+   if (!function_exists('taxonomy_term_page')) {
+     /** 
+      * including the taxonomy.pages.inc file shouldn't be necessary, because
+      * TaxMan is correctly using hook_menu_alter to change the callback.
+      * but in some combinations with other modules, which overwrite the menu
+      * entry in hook_menu, calling taxonomy_term_page is causing an error. 
+      * the following lines are going to prevent the fatal error
+      */
+     $taxonomy_module_path = drupal_get_path('module', 'taxonomy');
+     include_once($taxonomy_module_path .'/taxonomy.pages.inc');
+   }
    return taxonomy_term_page($new_tids_str, $depth, $op);
   }
   else {
