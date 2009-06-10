@@ -910,6 +910,9 @@ function theme_taxonomy_manager_tree_checkbox($element) {
     }
     $title = $title = l($title, $element['#link'], array('attributes' => $attr));
   }
+  else {
+    $title = check_plain($title);
+  }
   
   if (!is_null($title)) {
     $checkbox = '<label class="option">'. $checkbox .' '. $title .'</label>';
@@ -938,6 +941,9 @@ function theme_taxonomy_manager_tree_radio($element) {
   $title = $element['#title'];
   if ($element['#link']) {
     $title = l($title, $element['#link'], array('attributes' => array("class" => "term-data-link")));
+  }
+  else {
+    $title = check_plain($title);
   }
   
   if (!is_null($title)) {
