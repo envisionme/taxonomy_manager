@@ -105,7 +105,9 @@ function taxonomy_manager_menu() {
  * Implementation of hook_menu_alter
  */
 function taxonomy_manager_menu_alter(&$callbacks) {
-  $callbacks['taxonomy/term/%']['page callback'] = 'taxonomy_manager_term_page';
+  if (!variable_get('taxonomy_manager_disable_merge_redirect', 0)) {
+    $callbacks['taxonomy/term/%']['page callback'] = 'taxonomy_manager_term_page';
+  }
 }
 
 /**

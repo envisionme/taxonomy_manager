@@ -976,13 +976,19 @@ function taxonomy_manager_settings() {
     '#default_value' => variable_get('taxonomy_manager_disable_mouseover', 0),
     '#description' => t('Disabeling this feature speeds up the Taxonomy Manager'),
   );
+  $form['taxonomy_manager_disable_merge_redirect'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Disable redirect of the taxonomy term page to merged terms '),
+    '#default_value' => variable_get('taxonomy_manager_disable_merge_redirect', 0),
+    '#description' => t('When using the merging feature, the selected terms get merged into one term. All selected terms will be deleted afterwards. Normally the Taxonomy Manager redirects calls to taxonomy/term/$tid of the deleted terms (through merging) to the resulting merged term. This feature might conflict with other modules (e.g. Taxonomy Breadcrumb, Panels), which implement hook_menu_alter to change the taxonomy_manager_term_page callback. Disable this feature if it conflicts with other modules or if you do not need it. Changing this setting requires a (menu) cache flush to become active.'),
+  );
   $form['taxonomy_manager_pager_tree_page_size'] = array(
     '#type' => 'select',
     '#title' => t('Pager count'),
     '#options' => array(25 => 25, 50 => 50, 75 => 75, 100 => 100, 150 => 150, 200 => 200, 250 => 250, 300 => 300, 400 => 400, 500 => 500),
    '#default_value' => variable_get('taxonomy_manager_pager_tree_page_size', 50),
     '#description' => t('Select how many terms should be listed on one page. Huge page counts can slow down the Taxonomy Manager'),
-);
+  );
   return system_settings_form($form);
 }
 
