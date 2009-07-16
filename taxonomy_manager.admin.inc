@@ -627,11 +627,12 @@ function taxonomy_manager_form_term_data($tid) {
   $vocabulary = taxonomy_vocabulary_load($term->vid);
   
   //prevent that title of the fieldset is too long
-  $title = check_plain($term->name);
-  if (strlen($title) >= 33) {
-    $title = substr($title, 0, 33) . "...";
+  $title = $term->name;
+  if (drupal_strlen($title) >= 33) {
+    $title = drupal_substr($title, 0, 33) ."...";
   }
   $title .= " (". $term->tid .")";
+  $title = check_plain($title);
   
   $form['term_data'] = array( 
     '#type' => 'fieldset', 
