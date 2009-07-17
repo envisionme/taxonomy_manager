@@ -89,10 +89,18 @@ Drupal.TermData.prototype.load = function() {
   param['form_id'] = this.form_id;
   
   $.get(url, param, function(data) {
-    termdata.div = $('#taxonomy-term-data');
-    $(termdata.div).html(data);
-    termdata.form();
+    termdata.insertForm(data);
   });
+}
+
+/**
+ * inserts received html data into form wrapper
+ */
+Drupal.TermData.prototype.insertForm = function(data) {
+  var termdata = this;
+  termdata.div = $('#taxonomy-term-data');
+  $(termdata.div).html(data);
+  termdata.form(); 
 }
 
 /**
@@ -109,6 +117,7 @@ Drupal.TermData.prototype.form = function() {
   } catch(e) {} //autocomplete or textarea js not added to page
   
   this.param['tid'] = this.tid;
+  this.param['vid'] = $('input#edit-term-data-vid').attr('value');
   
   $('.term-data-autocomplete-add').click(function() {
     termdata.param['attr_type'] = $(this).find("img").attr("class");
@@ -130,7 +139,7 @@ Drupal.TermData.prototype.form = function() {
       termdata.param[$(this).attr('id')] = $(this).attr('value');
     });
     termdata.send();
-    $(this).parent().remove();
+    //$(this).parent().remove();
   });
   
   $('#edit-term-data-weight').change(function() {
@@ -158,9 +167,11 @@ Drupal.TermData.prototype.send = function() {
       data: termdata.param, 
       type: "POST", 
       url: url,
-      complete: function() {
+      dataType: 'json',
+      success: function(response, status) {
         termdata.update();
-      }
+        termdata.insertForm(response.data);
+      },
     });
   }
 }
@@ -169,10 +180,6 @@ Drupal.TermData.prototype.send = function() {
  * updates term data form and if necessary tree structure
  */
 Drupal.TermData.prototype.update = function() {
-  if (this.param['op'] == 'add') {
-    this.load();
-  }
-  
   var settings = Drupal.settings.taxonomytree || [];
   var id, vid;
   

@@ -572,7 +572,7 @@ function taxonomy_manager_export_form($voc) {
  * @param $tid
  * @param $ahah if true, return rendered form, else redirect
  */
-function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $print = TRUE) {
+function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $print = TRUE, $msg = "", $is_error_msg = FALSE) {
   if (!$ahah) {
     drupal_goto('admin/content/taxonomy_manager/voc/'. $vid .'/'. $tid);
   }
@@ -601,6 +601,19 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $prin
     ),
     '#weight' => 20,
   );
+  if ($msg != "") {
+    $term_form['term_data']['msg'] = array(
+      '#type' => 'markup',
+      '#prefix' => '<div class="messages status">',
+      '#suffix' => '</div>',
+      '#value' => $msg,
+      '#weight' => -20,
+    ); 
+    if ($is_error_msg) {
+     $term_form['term_data']['msg']['#value'] = t("Error! Your last operation couldn't be performed because of following problem:") ." ". $msg;
+     $term_form['term_data']['msg']['#prefix'] = '<div class="message error">';
+    }
+  }
   $form = $term_form;
 
   drupal_prepare_form('taxonomy_manager_form', $form, $form_state);
@@ -685,7 +698,7 @@ function taxonomy_manager_form_term_data($tid) {
   );
   $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
   $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '53');    
-  $form['term_data']['vid'] = array('#type' => 'value', '#value' => $term->vid);
+  $form['term_data']['vid'] = array('#type' => 'hidden', '#value' => $term->vid);
   
   return $form;
 }
@@ -894,7 +907,52 @@ function taxonomy_manager_form_move_validate($form, &$form_state) {
     $form_state['rebuild'] = TRUE;
   }
   
+  $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['move']['parents'], $form_state['values']['vid'], FALSE);
+
+  $parents = array();
+  foreach ($typed_parents as $parent_info) {
+    $parents[(int) $parent_info['tid']] = (int) $parent_info['tid'];
+  }
+
+  if (!taxonomy_manager_check_circular_hierarchy($selected_tids, $parents)) {
+    form_set_error('move', t('Invalid selection. The resulting hierarchy would contain circles, which is not allowed. A term cannot be a parent of itself.')); 
+    $form_state['rebuild'] = TRUE;
+  }
 }
+
+
+/**
+ * checks for circles in the hierarchy, e.g. 1 -> 2 -> 3 -> 1
+ * a term can't contain itself as a parent
+ *
+ * returns TRUE if resulting hierarchy is valid, else FALSE 
+ */
+function taxonomy_manager_check_circular_hierarchy($tids, $new_parents_tids) {
+  if (is_array($tids) && is_array($new_parents_tids)) {
+    //directly same term
+    foreach ($tids as $tid) {
+      if (in_array($tid, $new_parents_tids)) {
+        return false;
+      }  
+    }
+  
+    //same term over more hierarchy levels
+    $all_parents = array();
+    foreach ($new_parents_tids as $parent_tid) {
+      $parents = taxonomy_get_parents_all($parent_tid);
+      foreach ($parents as $parent) {
+        $all_parents[$parent->tid] = $parent->tid;
+      }
+    }
+    foreach ($tids as $tid) {
+      if (in_array($tid, $all_parents)) {
+        return false;
+      } 
+    }
+  }
+  return true;
+}
+
 
 /**
  * Submit handler for moving terms
@@ -903,12 +961,14 @@ function taxonomy_manager_form_move_submit($form, $form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['move']['parents'], $form_state['values']['vid']);
-  
+
   $parents = array();
   foreach ($typed_parents as $parent_info) {
     $parents[] = $parent_info['tid'];
   }
+  
   if (count($parents) == 0) $parents[0] = 0; //if empty, delete all parents
+  
   taxonomy_manager_move($parents, $selected_tids, $form_state['values']['move']['options']);
   
   if ($form_state['values']['move']['options']['keep_old_parents']) {
@@ -918,6 +978,7 @@ function taxonomy_manager_form_move_submit($form, $form_state) {
   
   drupal_set_message("Terms moved");
 }
+
 
 /**
  * Validation handler for validating terms
@@ -932,11 +993,11 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
   $main_terms = $matches[1];
 
   if (!is_array($main_terms) || count($main_terms) == 0 || empty ($main_terms[0])) {
-    form_set_error('merge][main_term', t("Please enter a name into %title", array('%title' => "'". t('Main term') ."'")));
+    form_set_error('merge][main_term', t('Please enter a name into "Resulting merged term"'));
     $form_state['rebuild'] = TRUE;
   }
   else if (count($main_terms) > 1) {
-    form_set_error('merge][main_term', t("Please only enter single names into %title", array('%title' => "'". t('Main term') ."'")));
+    form_set_error('merge][main_term', t('Please only enter single names into "Resulting merged term"'));
     $form_state['rebuild'] = TRUE;
   }
       
@@ -945,8 +1006,22 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
     $form_state['rebuild'] = TRUE;
   }
   else if (count($selected_tids) > 50) {
-    form_set_error('merge', t("Please select less than 50 terms to merge. Merging to many terms in one step can cause timeouts and inconsistent database states"));
+    form_set_error('merge', t("Please select less than 50 terms to merge. Merging of too many terms in one step can cause timeouts and inconsistent database states"));
     $form_state['rebuild'] = TRUE;
+  }
+  else if ($form_state['values']['merge']['options']['collect_parents']) {
+    $typed_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid'], FALSE);
+
+    $main_terms = array();
+    foreach ($typed_terms as $term_info) {
+      $main_terms[$term_info['tid']] = $term_info['tid'];
+    }
+    if (count($main_terms) == 1) {
+      if(!taxonomy_manager_check_circular_hierarchy($main_terms, $selected_tids)) {
+        form_set_error('merge', t('Invalid selection. The resulting hierarchy would contain circles, which is not allowed. A term cannot be a parent of itself. Unselect "Collect all parents of selected terms an add it to the merged term" or specify a different resulting term.')); 
+        $form_state['rebuild'] = TRUE;
+      }
+    }
   }
 }
 
@@ -1000,10 +1075,16 @@ function taxonomy_manager_settings() {
  */
 function taxonomy_manager_term_data_edit() {
   $param = $_POST;
-
+  $msg = "Changes successfully saved";
+  $is_error_msg = FALSE;
+  
   $tid = $param['tid'];
   if (!$tid) {
     $tid = $param['term_data']['tid'];
+  }
+  $vid = $param['vid'];
+  if (!$vid) {
+    $vid = $param['term_data']['vid'];
   }
   $values = $param['value'];
   $attr_type = $param['attr_type'];
@@ -1014,87 +1095,107 @@ function taxonomy_manager_term_data_edit() {
     db_query("UPDATE {term_data} SET description = '%s' WHERE tid = %d", $param['term_data']['description'], $tid);
   }
 
-  $term = taxonomy_get_term($tid);
-
-  $vid = $term->vid;
   
-  if ($op == 'add') {
-    if ($attr_type == 'synonym') {
-      $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
-      preg_match_all($regexp, $values, $matches);
-      $synonyms = array_unique($matches[1]);
-      $values = array();
-      foreach ($synonyms as $syn) {
-        $values[] = trim($syn);
-      }
+  //validation for consistent hierarchy
+  if ($op == 'add' && $attr_type == 'parent') {
+    $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, FALSE);
+
+    $parents = array();
+    foreach ($typed_parents as $parent_info) {
+      $parents[(int) $parent_info['tid']] = (int) $parent_info['tid'];
     }
-    else {
-      $typed_term_tids = array();
-      $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $term->vid);
-      $values = array();
-      foreach ($typed_term_tids as $term_info) {
-        $values[] = $term_info['tid'];
-      }
-    }
+    $tids = array();
+    $tids[$tid] = $tid;
+    if (!taxonomy_manager_check_circular_hierarchy($tids, $parents)) {
+      $msg = t('Invalid parent. The resulting hierarchy would contain circles, which is not allowed. A term cannot be a parent of itself.');
+      $is_error_msg = TRUE;
+    }  
   }
   
-  switch ($attr_type) {    
-    case 'parent':
-      if (!is_array($values)) $values = array($values);
-      foreach ($values as $value) {
-        db_query("DELETE FROM {term_hierarchy} WHERE parent = %d AND tid = %d", $value, $tid);
-        if ($op == 'add') {
-          db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (%d, %d)", $value, $tid);
+  if (!$is_error_msg) {
+    if ($op == 'add') {
+      if ($attr_type == 'synonym') {
+        $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+        preg_match_all($regexp, $values, $matches);
+        $synonyms = array_unique($matches[1]);
+        $values = array();
+        foreach ($synonyms as $syn) {
+          $values[] = trim($syn);
         }
       }
-      if ($op == 'delete') {
-        $parents = taxonomy_get_parents($tid);
-        if (count($parents) == 0) {
-          //ensure that a term has a least parent 0
-          db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
-          db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (0, %d)", $tid);
+      else {
+        $typed_term_tids = array();
+        $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $vid);
+        $values = array();
+        foreach ($typed_term_tids as $term_info) {
+          $values[] = $term_info['tid'];
         }
       }
-      else if ($op == 'add') {
-        db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
-      }
-      taxonomy_manager_update_voc($vid, taxonomy_get_parents($tid));
-      break; 
-    
-    case 'related': 
-      if (!is_array($values)) $values = array($values);
-      foreach ($values as $value) {
-        if ($value != 0) {
-          db_query("DELETE FROM {term_relation} WHERE tid1 = %d AND tid2 = %d", $tid, $value);
-        //  db_query("DELETE FROM {term_relation} WHERE tid2 = %d AND tid1 = %d", $tid, $value);
+    }
+  
+    switch ($attr_type) {    
+      case 'parent':
+        if (!is_array($values)) $values = array($values);
+        foreach ($values as $value) {
+          db_query("DELETE FROM {term_hierarchy} WHERE parent = %d AND tid = %d", $value, $tid);
           if ($op == 'add') {
-            db_query('INSERT INTO {term_relation} (tid1, tid2) VALUES (%d, %d)', $tid, $value);
+            db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (%d, %d)", $value, $tid);
           }
         }
-      }
-      break;
-    
-    case 'synonym': 
-      if (!is_array($values)) $values = array($values);
-      foreach ($values as $value) { 
-        db_query("DELETE FROM {term_synonym} WHERE tid = %d AND name = '%s'", $tid, $value);
-        if ($op == 'add') {
-          db_query("INSERT INTO {term_synonym} (tid, name) VALUES (%d, '%s')", $tid, $value);  
+        if ($op == 'delete') {
+          $parents = taxonomy_get_parents($tid);
+          if (count($parents) == 0) {
+            //ensure that a term has a least parent 0
+            db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
+            db_query("INSERT INTO {term_hierarchy} (parent, tid) VALUES (0, %d)", $tid);
+          }
         }
-      }
-      break;
+        else if ($op == 'add') {
+          db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $tid);
+        }
+        taxonomy_manager_update_voc($vid, taxonomy_get_parents($tid));
+        $msg = t("Successfully updated parents");
+        break; 
     
-    case 'weight': 
-      if (is_numeric($values)) {
-        db_query("UPDATE {term_data} SET weight = %d WHERE tid = %d", $values, $tid);
-      }
-      break;
+      case 'related': 
+        if (!is_array($values)) $values = array($values);
+        foreach ($values as $value) {
+          if ($value != 0) {
+            db_query("DELETE FROM {term_relation} WHERE tid1 = %d AND tid2 = %d", $tid, $value);
+            //  db_query("DELETE FROM {term_relation} WHERE tid2 = %d AND tid1 = %d", $tid, $value);
+            if ($op == 'add') {
+              db_query('INSERT INTO {term_relation} (tid1, tid2) VALUES (%d, %d)', $tid, $value);
+            }
+          }
+        }
+        $msg = t("Successfully updated related terms");
+        break;
+    
+      case 'synonym': 
+        if (!is_array($values)) $values = array($values);
+        foreach ($values as $value) { 
+          db_query("DELETE FROM {term_synonym} WHERE tid = %d AND name = '%s'", $tid, $value);
+          if ($op == 'add') {
+            db_query("INSERT INTO {term_synonym} (tid, name) VALUES (%d, '%s')", $tid, $value);  
+          }
+        }
+        $msg = t("Successfully updated synonyms");
+        break;
+    
+      case 'weight': 
+        if (is_numeric($values)) {
+          db_query("UPDATE {term_data} SET weight = %d WHERE tid = %d", $values, $tid);
+          $msg = t("Successfully updated weight to !weight", array('!weight' => $values));
+        }
+        break;
+    }
+    $term = (array) taxonomy_get_term($tid);
+    $term['fields'] = $param['term_data']['fields'];
+    module_invoke_all('taxonomy', 'update', 'term', $term);
+    module_invoke_all('taxonomy_manager_term_data_submit', $param, $values);
   }
-  $term = (array) taxonomy_get_term($tid);
-  $term['fields'] = $param['term_data']['fields'];
-  module_invoke_all('taxonomy', 'update', 'term', $term);
-  module_invoke_all('taxonomy_manager_term_data_submit', $param, $values);
-  drupal_json(array('data' => taxonomy_manager_update_term_data_form($vid, $tid, TRUE, FALSE) ));
+  
+  drupal_json(array('data' => taxonomy_manager_update_term_data_form($vid, $tid, TRUE, FALSE, $msg, $is_error_msg)));
   //taxonomy_manager_update_term_data_form($vid, $tid, TRUE);
   exit;
 }
