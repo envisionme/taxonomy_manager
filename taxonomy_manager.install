@@ -3,6 +3,10 @@
 // $Id: $
 
 /**
+ * @file defines necessary schema the Taxonomy Manager
+ */
+
+/**
  * Implementation of hook_install
  */
 function taxonomy_manager_install() {

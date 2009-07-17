@@ -1,5 +1,14 @@
 <?php
+// $Id$
 
+/**
+ * 
+ * @file
+ * Taxonomy Manager Admin
+ * 
+ * contains all forms and saving function for the Taxonomy Manager
+ * 
+ */
 
 /**
  * list of vocabularies, which link to Taxonomy Manager interface
@@ -68,7 +77,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     $form['text'] = array( 
       '#value' => $text,
     );
-    $form += taxonomy_manager_add_form($voc, false);
+    $form += taxonomy_manager_add_form($voc, FALSE);
     return $form;
   }
   
@@ -932,7 +941,7 @@ function taxonomy_manager_check_circular_hierarchy($tids, $new_parents_tids) {
     //directly same term
     foreach ($tids as $tid) {
       if (in_array($tid, $new_parents_tids)) {
-        return false;
+        return FALSE;
       }  
     }
   
@@ -946,11 +955,11 @@ function taxonomy_manager_check_circular_hierarchy($tids, $new_parents_tids) {
     }
     foreach ($tids as $tid) {
       if (in_array($tid, $all_parents)) {
-        return false;
+        return FALSE;
       } 
     }
   }
-  return true;
+  return TRUE;
 }
 
 
@@ -1017,7 +1026,7 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
       $main_terms[$term_info['tid']] = $term_info['tid'];
     }
     if (count($main_terms) == 1) {
-      if(!taxonomy_manager_check_circular_hierarchy($main_terms, $selected_tids)) {
+      if (!taxonomy_manager_check_circular_hierarchy($main_terms, $selected_tids)) {
         form_set_error('merge', t('Invalid selection. The resulting hierarchy would contain circles, which is not allowed. A term cannot be a parent of itself. Unselect "Collect all parents of selected terms an add it to the merged term" or specify a different resulting term.')); 
         $form_state['rebuild'] = TRUE;
       }
@@ -1034,8 +1043,10 @@ function taxonomy_manager_form_merge_submit($form, $form_state) {
   $main_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid']);
   $main_term = array_shift($main_terms);
   
-  $new_inserted = false;
-  if ($main_term['new']) $new_inserted = true;
+  $new_inserted = FALSE;
+  if ($main_term['new']) {
+    $new_inserted = TRUE;
+  }
   $main_term_tid = $main_term['tid'];
   taxonomy_manager_merge($main_term_tid, $selected_tids, $form_state['values']['merge']['options'], $new_inserted);
   
@@ -1207,8 +1218,10 @@ function taxonomy_manager_term_data_edit() {
  */
 function _taxonomy_manager_voc_is_empty($vid) {
   $count = db_result(db_query_range("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0", $vid, 0, 1));
-  if ($count == 0) return true;
-  return false;
+  if ($count == 0) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 
@@ -1430,7 +1443,9 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert
   foreach ($typed_terms as $typed_term) {
     $typed_term = str_replace('""', '"', preg_replace('/^"(.*)"$/', '\1', $typed_term));
     $typed_term = trim($typed_term);
-    if ($typed_term == "") { continue; }
+    if ($typed_term == "") { 
+      continue; 
+    }
 
     $possibilities = taxonomy_get_term_by_name($typed_term);
     $typed_term_tid = NULL; // tid match if any.

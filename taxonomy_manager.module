@@ -316,15 +316,15 @@ function taxonomy_manager_elements() {
  * @return the tree element
  */
 function taxonomy_manager_tree_process_elements($element) {
-  global $taxonomy_manager_existing_ids; //TEMP: seems like this functions gets called twice in preview and cause problem because of adding the settings to js twice
-  $taxonomy_manager_existing_ids = is_array($taxonomy_manager_existing_ids) ? $taxonomy_manager_existing_ids : array();
+  global $_taxonomy_manager_existing_ids; //TEMP: seems like this functions gets called twice in preview and cause problem because of adding the settings to js twice
+  $_taxonomy_manager_existing_ids = is_array($_taxonomy_manager_existing_ids) ? $_taxonomy_manager_existing_ids : array();
   
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $id = form_clean_id(implode('-', $element['#parents']));
   $vid = $element['#vid'];
 
-  if (!$element['#siblings_page'] && !in_array($id, $taxonomy_manager_existing_ids)) {
-    $taxonomy_manager_existing_ids[$id] = $id;
+  if (!$element['#siblings_page'] && !in_array($id, $_taxonomy_manager_existing_ids)) {
+    $_taxonomy_manager_existing_ids[$id] = $id;
     drupal_add_css($module_path .'css/taxonomy_manager.css');
     drupal_add_js($module_path .'js/tree.js');
     
@@ -570,9 +570,9 @@ function _taxonomy_manager_tree_term_get_class($current_index, $tree, $expand) {
   $class = '';
   $term = $tree[$current_index];
   $next = $tree[++$current_index];
-  $children = false;
+  $children = FALSE;
   while ($next->depth > $term->depth) {
-    $children = true;
+    $children = TRUE;
     $next = $tree[++$current_index];
   }
   
@@ -789,8 +789,8 @@ function taxonomy_manager_tree_validate($form, &$form_state) {
  */
 function _taxonomy_manager_tree_term_valid($tid, $vid) {
   $term = taxonomy_get_term($tid);
-  if ($term->vid != $vid) return false;
-  return true;
+  if ($term->vid != $vid) return FALSE;
+  return TRUE;
 }
 
 /**
