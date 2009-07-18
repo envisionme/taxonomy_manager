@@ -2,6 +2,15 @@
 /**
  * Taxonomy Manager Tree formating
  */
+ 
+#taxonomy-manager-form fieldset {
+  margin: 0.5em 0;
+}
+
+#taxonomy-manager-form .left {
+  margin-left: 0; 
+}
+
 #taxonomy-manager-tree-outer-div {
   height: 550px;	
   overflow: auto;
@@ -9,7 +18,7 @@
 
 #taxonomy-manager-tree-outer-div fieldset {
   margin: 0;
-  padding: 5px;
+  padding: 0 5px;
 }
 
 #taxonomy-manager-tree-size {
@@ -101,7 +110,7 @@
 }
 
 .highlightActiveTerm{
-  background-color:#efefef;
+  background-color:#dddddd;
 }
 .highlightActiveTerm a{
   font-weight: bold;
@@ -201,13 +210,39 @@ input.save {
  * Term Data Form
  */
 
+.term-data-autocomplete-add span {
+  text-decoration: none;
+  width: 22px;
+  height: 22px;
+  display:block;
+  background-image: url(../images/list-add.png);
+}
+
+.term-data-autocomplete-add span:hover {
+  text-decoration: none;
+  background-image: url(../images/list-add-hover.png);
+}
+
+.taxonomy-term-data-operations span {
+  text-decoration: none;
+  width: 22px;
+  height: 22px;
+  display:block;
+  background-image: url(../images/list-remove.png);
+}
+
+.taxonomy-term-data-operations span:hover {
+  text-decoration: none;
+  background-image: url(../images/list-remove-hover.png);
+}
 
 #taxonomy-term-data .resizable-textarea {
   width: 100%;
 }
 
-#taxonomy-term-data-fieldset {
+#taxonomy-term-data fieldset {
   margin-top: 0;
+  padding-top: 0.5em;
 }
 .taxonomy-term-data-operations {
   cursor: pointer;
@@ -224,17 +259,6 @@ input.save {
   vertical-align: bottom;
 }
 
-#term-data-name-save {
-  padding-top: 23px;
-  padding-left: 10px;
-  float: left;
-  cursor: pointer;
-}
-
-#term-data-name-field {
-  float: left;
-}
-
 #edit-term-data-name {
   width: 100%;
 }
@@ -243,17 +267,34 @@ input.save {
   height: 130px;
 }
 
-#term-data-description-save {
-  padding-top: 105px;
-  padding-left: 10px;
-  float: left;
-  cursor: pointer;
+#taxonomy-term-data .form-item {
+  margin-bottom: 0.3em;
+  margin-top: 0.3em;
 }
 
-#term-data-description-field {
-  float: left;
+#taxonomy-term-data table .form-item {
+  margin-bottom: 0.2em; 
 }
 
+#taxonomy-term-data table {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+#taxonomy-term-data td, th {
+  padding-top: 0.1em;
+  padding-bottom: 0.1em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
+
+#taxonomy-term-data .messages {
+  margin: 0;
+}
+
+#edit-term-data-save {
+  margin: 0.5em 0; 
+}
 
 .clear {
   clear: both;

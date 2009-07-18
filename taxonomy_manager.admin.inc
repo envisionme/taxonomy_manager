@@ -234,6 +234,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
       'method' => 'replace',
       'event' => 'click',
       'wrapper' => 'taxonomy-term-data',
+      'progress' => array('type' => ''),
     ),
     '#weight' => 20,
   );
@@ -607,6 +608,7 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $prin
       'method' => 'replace',
       'event' => 'click',
       'wrapper' => 'taxonomy-term-data',
+      'progress' => array('type' => ''),
     ),
     '#weight' => 20,
   );
@@ -680,7 +682,7 @@ function taxonomy_manager_form_term_data($tid) {
     '#title' => t('Description'),
     '#default_value' => $term->description,
     '#cols' => 35,
-    '#rows' => 4,
+    '#rows' => 3,
   );
   
   $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_synonyms($term->tid), t('Synonyms'), 'synonym', FALSE); 
@@ -704,9 +706,10 @@ function taxonomy_manager_form_term_data($tid) {
     '#prefix' => '<div id="term-data-weight">', 
     '#suffix' => '</div>', 
     '#title' => t('Weight'), 
+    '#weight' => 53,
   );
   $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
-  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '53');    
+  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '54');    
   $form['term_data']['vid'] = array('#type' => 'hidden', '#value' => $term->vid);
   
   return $form;
@@ -745,7 +748,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       '#row-id' => 'term-'. $id, 
     );
     $form['data'][$id][] = array(
-      '#value' => theme("image", $module_path ."images/list-remove.png", "term-remove", NULL, array('class' => $attr)), 
+      '#value' => '<span class="'. $attr .'" title="'. t('Remove') .'">&nbsp;</span>',
       '#row-class' => 'taxonomy-term-data-operations',
     );
   }
@@ -765,7 +768,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
     }
   
     $form['op']['add_button'] = array( 
-      '#value' => theme("image", $module_path ."images/list-add.png", "add", NULL, array('class' => $attr)), 
+      '#value' => '<span class="'. $attr .'" title="'. t('Add') .'">&nbsp;</span>', 
       '#prefix' => '<div class="term-data-autocomplete-add">',
       '#suffix' => '</div>',
     );

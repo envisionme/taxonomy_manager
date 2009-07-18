@@ -119,8 +119,8 @@ Drupal.TermData.prototype.form = function() {
   this.param['tid'] = this.tid;
   this.param['vid'] = $('input#edit-term-data-vid').attr('value');
   
-  $('.term-data-autocomplete-add').click(function() {
-    termdata.param['attr_type'] = $(this).find("img").attr("class");
+  $('.term-data-autocomplete-add > span').click(function() {
+    termdata.param['attr_type'] = $(this).attr("class");
     termdata.param['value'] = $(this).parents("tr").find('input:text').attr('value');
     termdata.param['op'] = 'add';
     $('#taxonomy-term-data-fieldset :input').each(function() {
@@ -129,17 +129,16 @@ Drupal.TermData.prototype.form = function() {
     termdata.send();
   });
   
-  $('.taxonomy-term-data-operations').click(function() {
-    termdata.param['attr_type'] = $(this).find("img").attr("class");
-    termdata.param['info'] = $(this).find("img").attr("id");
-    var value = $(this).siblings(".taxonomy-term-data-name").attr("id");
+  $('.taxonomy-term-data-operations > span').click(function() {
+    termdata.param['attr_type'] = $(this).attr("class");
+    termdata.param['info'] = $(this).attr("id");
+    var value = $(this).parent().siblings(".taxonomy-term-data-name").attr("id");
     termdata.param['value'] = value.substring(5);
     termdata.param['op'] = 'delete';
     $('#taxonomy-term-data-fieldset :input').each(function() {
       termdata.param[$(this).attr('id')] = $(this).attr('value');
     });
     termdata.send();
-    //$(this).parent().remove();
   });
   
   $('#edit-term-data-weight').change(function() {
