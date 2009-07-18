@@ -685,7 +685,9 @@ function taxonomy_manager_form_term_data($tid) {
     '#rows' => 3,
   );
   
-  $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, taxonomy_get_synonyms($term->tid), t('Synonyms'), 'synonym', FALSE); 
+  $synonyms = taxonomy_get_synonyms($term->tid);
+  asort($synonyms);
+  $form['term_data']['synonyms'] = _taxonomy_manager_form_term_data_lists($term, $synonyms, t('Synonyms'), 'synonym', FALSE); 
   $form['term_data']['synonyms']['#tree'] = TRUE;
   $form['term_data']['synonyms']['#weight'] = '50';
   
