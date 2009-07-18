@@ -704,7 +704,7 @@ function taxonomy_manager_form_term_data($tid) {
   $form['term_data']['weight'] = array( 
     '#type' => 'weight', 
     '#default_value' => $term->weight, 
-    '#delta' => 40,
+    '#delta' => 50,
     '#prefix' => '<div id="term-data-weight">', 
     '#suffix' => '</div>', 
     '#title' => t('Weight'), 
@@ -739,13 +739,14 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       $name = $value->name;
       $id = $value->tid;
       $vid = $value->vid;
+      $extra_info = taxonomy_manager_tree_term_extra_info($value);
     }
     else {
       $name = $value;
       $id = $value;
     }
     $form['data'][$id][] = array(
-      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid .'/'. $id) : check_plain($name),
+      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid .'/'. $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
       '#row-class' => 'taxonomy-term-data-name',
       '#row-id' => 'term-'. $id, 
     );
@@ -990,7 +991,20 @@ function taxonomy_manager_form_move_submit($form, $form_state) {
   }
   taxonomy_manager_update_voc($form_state['values']['vid'], $parents);
   
-  drupal_set_message("Terms moved");
+  $term_names_array = array();
+  foreach ($selected_tids as $selected_tid) {
+    $term = taxonomy_get_term($selected_tid);
+    $term_names_array[] = $term->name; 
+  }
+  $term_names = implode($term_names_array, ', ');
+  $parent_names = "";
+  if (count($typed_parents) == 0) {
+    $parent_names = t("root level");
+  }
+  else {
+    $parent_names = $form_state['values']['move']['parents'];
+  }
+  drupal_set_message(t("Terms %term_names moved to %parent_names", array('%term_names' => $term_names, '%parent_names' => $parent_names)));
 }
 
 
@@ -1055,7 +1069,14 @@ function taxonomy_manager_form_merge_submit($form, $form_state) {
   $main_term_tid = $main_term['tid'];
   taxonomy_manager_merge($main_term_tid, $selected_tids, $form_state['values']['merge']['options'], $new_inserted);
   
-  drupal_set_message("Terms merged");
+  $term_names_array = array();
+  foreach ($selected_tids as $selected_tid) {
+    $term = taxonomy_get_term($selected_tid);
+    $term_names_array[] = $term->name; 
+  }
+  $term_names = implode($term_names_array, ', ');
+
+  drupal_set_message(t("Terms %term_names merged into %main_term", array('%term_names' => $term_names, '%main_term' => $form_state['values']['merge']['main_term'])));
 }
 
 /**
@@ -1571,7 +1592,7 @@ function taxonomy_manager_autocomplete_load($vid, $string = '') {
       LEFT JOIN {term_synonym} s ON t.tid = s.tid
       WHERE t.vid = %d 
       AND (LOWER(t.name) LIKE LOWER('%%%s%%') OR LOWER(s.name) LIKE LOWER('%%%s%%'))", 't', 'tid'),
-      $vid, $last_string, $last_string, 0, 10);
+      $vid, $last_string, $last_string, 0, 20);
     
     $prefix = count($array) ? '"'. implode('", "', $array) .'", ' : '';
 

@@ -611,7 +611,7 @@ function taxonomy_manager_tree_term_extra_info($term) {
     $p_names = array();
     foreach ($term_parents as $p) {
       if ($p->tid != $term->tid) {
-        $p_names[] = check_plain($p->name);
+        $p_names[] = $p->name;
       }
     }
     $extra_info .= implode(', ', $p_names);
