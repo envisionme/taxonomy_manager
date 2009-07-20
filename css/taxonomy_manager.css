@@ -95,8 +95,25 @@
   display: inline;
 }
 
+.term-operations span.select-all-children {
+  text-decoration: none;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-image: url(../images/select-all-children.png);
+}
+.term-operations span.unselect-all-children {
+  text-decoration: none;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-image: url(../images/unselect-all-children.png);
+}
+
 .term-operations img.term-up,
 .term-operations img.term-down,
+.term-operations span.select-all-children,
+.term-operations span.unselect-all-children,
 .term-operations a img {
   cursor: pointer;
   vertical-align: bottom;

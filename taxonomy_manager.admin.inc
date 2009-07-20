@@ -720,7 +720,7 @@ function taxonomy_manager_form_term_data($tid) {
     '#weight' => 53,
   );
   $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
-  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page site'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '54');    
+  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '54');    
   $form['term_data']['vid'] = array('#type' => 'hidden', '#value' => $term->vid);
   
   return $form;

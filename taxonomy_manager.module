@@ -164,10 +164,13 @@ function taxonomy_manager_tree_operations($term) {
   $form = array();
   if (!variable_get('taxonomy_manager_disable_mouseover', 0)) {
     $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
-    $form['up'] = array('#value' => theme("image", $module_path ."images/go-up-small.png", "go up", NULL, array('class' => 'term-up')));
-    $form['down'] = array('#value' => theme("image", $module_path ."images/go-down-small.png", "go down", NULL, array('class' => 'term-down')));
+    if (_taxonomy_manager_tree_term_children_count($term->tid) > 0) {
+      $form['select_all'] = array('#weight' => -1, '#value' => '<span class="select-all-children" title="'. t("Select all children") .'">&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+    }
+    $form['up'] = array('#value' => theme("image", $module_path ."images/go-up-small.png", "go up", t("Move up"), array('class' => 'term-up')));
+    $form['down'] = array('#value' => theme("image", $module_path ."images/go-down-small.png", "go down", t("Move down"), array('class' => 'term-down')));
     $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
-    $link = l('&nbsp;'. $link_img, taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE));
+    $link = l('&nbsp;'. $link_img, taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => t("Go to term page"), 'target' => '_blank'), 'html' => TRUE));
     $form['link'] = array('#value' => $link, '#weight' => 10);
   }
   return $form;

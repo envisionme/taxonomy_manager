@@ -52,6 +52,7 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.attachTreeview(this.ul);
   this.attachChildForm();
   this.attachSiblingsForm();
+  this.attachSelectAllChildren(this.ul);
 }
 
 /**
@@ -144,6 +145,7 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
       tree.attachTreeview(ul);
       tree.attachSiblingsForm(ul);
       tree.attachChildForm(li);
+      tree.attachSelectAllChildren(ul);
       
       //only attach other features if enabled!
       var weight_settings = Drupal.settings.updateWeight || [];
@@ -177,6 +179,7 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
     tree.attachTreeview(ul);
     tree.attachSiblingsForm();
     tree.attachChildForm();
+    tree.attachSelectAllChildren();
     Drupal.attachUpdateWeightTerms();
     Drupal.attachTermData();
   });
@@ -222,6 +225,7 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
       $(li).after(data);
       tree.attachTreeviewToSiblings($('li', li.parentNode), currentIndex);
       tree.attachChildFormToSiblings($('li', li.parentNode), currentIndex);
+      tree.attachSelectAllChildren($('li', li.parentNode), currentIndex);
       
       //only attach other features if enabled!
       var weight_settings = Drupal.settings.updateWeight || [];
@@ -319,6 +323,33 @@ Drupal.updateTreeDownTerm = function(downTerm) {
   }
   else {
     $(downTerm).addClass("last");
+  }
+}
+
+/**
+ * Adds button next to parent term to select all available child checkboxes
+ */
+Drupal.TaxonomyManagerTree.prototype.attachSelectAllChildren = function(parent, currentIndex) {
+  var tree = this;
+  if (currentIndex) {
+    parent = $(parent).slice(currentIndex);
+  }
+  $(parent).find('span.select-all-children').click(function() {
+    tree.SelectAllChildrenToggle(this);
+  });
+}
+
+/**
+ * (un-)selects nested checkboxes
+ */
+Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
+  if ($(span).hasClass("select-all-children")) {
+    $(span).removeClass("select-all-children").addClass("unselect-all-children");
+    $(span).parents(".term-line").siblings("ul").find(' :checkbox').attr("checked", true); 
+  }
+  else {
+    $(span).removeClass("unselect-all-children").addClass("select-all-children");
+    $(span).parents(".term-line").siblings("ul").find(':checkbox').attr("checked", false);
   }
 }
 
