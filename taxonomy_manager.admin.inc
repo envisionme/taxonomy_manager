@@ -917,9 +917,14 @@ function taxonomy_manager_term_confirm_delete_submit($form, &$form_state) {
 function taxonomy_manager_form_move_validate($form, &$form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
+  $error_msg = "";
   if (count($selected_tids) < 1) {
     form_set_error('move', t("Please selected terms you want to move in the hierarchy"));
     $form_state['rebuild'] = TRUE;
+  }
+  else if (_taxonomy_manager_check_duplicates($form_state['values']['vid'], $form_state['values']['move']['parents'], $error_msg)) {
+    form_set_error('move', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").");
+        $form_state['rebuild'] = TRUE;
   }
   
   $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['move']['parents'], $form_state['values']['vid'], FALSE);
@@ -1019,7 +1024,8 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
   $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
   preg_match_all($regexp, $form_state['values']['merge']['main_term'], $matches);
   $main_terms = $matches[1];
-
+  $error_msg = "";
+   
   if (!is_array($main_terms) || count($main_terms) == 0 || empty ($main_terms[0])) {
     form_set_error('merge][main_term', t('Please enter a name into "Resulting merged term"'));
     $form_state['rebuild'] = TRUE;
@@ -1036,6 +1042,10 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
   else if (count($selected_tids) > 50) {
     form_set_error('merge', t("Please select less than 50 terms to merge. Merging of too many terms in one step can cause timeouts and inconsistent database states"));
     $form_state['rebuild'] = TRUE;
+  }
+  else if (_taxonomy_manager_check_duplicates($form_state['values']['vid'], $form_state['values']['merge']['main_term'], $error_msg)) {
+    form_set_error('merge', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").");
+        $form_state['rebuild'] = TRUE;
   }
   else if ($form_state['values']['merge']['options']['collect_parents']) {
     $typed_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid'], FALSE);
@@ -1077,6 +1087,27 @@ function taxonomy_manager_form_merge_submit($form, $form_state) {
   $term_names = implode($term_names_array, ', ');
 
   drupal_set_message(t("Terms %term_names merged into %main_term", array('%term_names' => $term_names, '%main_term' => $form_state['values']['merge']['main_term'])));
+}
+
+/**
+ * returns TRUE if term with same name exists more often
+ */
+function _taxonomy_manager_check_duplicates($vid, $autocomplete_value, &$msg) {
+  $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+  preg_match_all($regexp, $autocomplete_value, $matches);
+  foreach ($matches[1] as $match) {
+   $terms = array();
+   $terms = taxonomy_manager_autocomplete_tags_get_tids($match, $vid, FALSE);
+   if (count($terms) > 1) {
+     $tids = array();
+     foreach ($terms as $term) {
+       $tids[] = $term['tid'];
+     }
+     $msg .= check_plain($match) .": ". implode(", ", $tids);
+     return TRUE;
+   }
+  }
+  return FALSE;
 }
 
 /**
@@ -1132,9 +1163,16 @@ function taxonomy_manager_term_data_edit() {
     db_query("UPDATE {term_data} SET description = '%s' WHERE tid = %d", $param['term_data']['description'], $tid);
   }
 
-  
-  //validation for consistent hierarchy
-  if ($op == 'add' && $attr_type == 'parent') {
+  if ($op == 'add' && ($attr_type == 'parent' || $attr_type == 'related')) {
+    //check for unique names
+    $error_msg = "";
+    if (_taxonomy_manager_check_duplicates($vid, $values, $error_msg)) {
+      $msg = t("Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").";
+      $is_error_msg = TRUE; 
+    }
+  }
+  else if ($op == 'add' && $attr_type == 'parent') {
+    //validation for consistent hierarchy
     $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, FALSE);
 
     $parents = array();
