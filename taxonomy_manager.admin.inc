@@ -128,7 +128,16 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#value' => t('Search'),
     '#suffix' => '<div class="clear"></div>',
   );
- 
+  
+  $form['search']['options'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Search options'),
+    '#options' => array(
+      'synonyms' => t('Include synonyms'),
+      'subtrees' => t('Search under selected terms'),
+    ),
+  );
+  
   $form['toolbar'] = array( 
     '#type' => 'fieldset', 
     '#title' => t('Toolbar'),
@@ -800,13 +809,40 @@ function taxonomy_manager_form_submit($form, &$form_state) {
   }
   $search_string = $form_state['values']['search']['field'];
   $terms = array();
-  $terms = taxonomy_manager_autocomplete_tags_get_tids($search_string, $form_state['values']['vid'], FALSE);
-  $term = array_shift($terms);
-  $tid = $term['tid'];
-  if ($tid) {
+  
+  $include_synonyms = FALSE;
+  $selected_tids = array();
+  
+  if ($form_state['values']['search']['options']['synonyms']) {
+    $include_synonyms = TRUE;
+  }
+  if ($form_state['values']['search']['options']['subtrees']) {
+    $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
+  }
+  
+  $terms = taxonomy_manager_autocomplete_search_terms($search_string, $form_state['values']['vid'], $include_synonyms, $selected_tids);
+  if (count($terms) == 1) {
+    $tid = $terms[0];
+    drupal_set_message(t("Your search string matches exactly one term"));
     drupal_goto('admin/content/taxonomy_manager/voc/'. $form_state['values']['vid'] .'/'. $tid);
   }
+  else if (count($terms) > 1) {
+    $matched_text_list = array();
+    foreach ($terms as $matched_tid) {
+      $matched_term = taxonomy_get_term($matched_tid);
+      $parents = array();
+      foreach (taxonomy_get_parents($matched_tid) as $parent) {
+        $parents[] = check_plain($parent->name);
+      }
+      $parent_text = count($parents) ? implode(' | ', $parents) ." › " : "";
+      $matched_text_list[] = $parent_text ."". l($matched_term->name, 'admin/content/taxonomy_manager/termdata/'. $matched_term->vid .'/'. $matched_term->tid, array('attributes' => array('title' => taxonomy_manager_tree_term_extra_info($matched_term)))) ." (". $matched_term->tid .")";
+    }
+    drupal_set_message(t("Your search string matches !count terms:", array('!count' => count($terms))) ."". theme('item_list', $matched_text_list));
+    $form_state['rebuild'] = TRUE;
+  }
   else {
+    drupal_set_message(t("No match found. Filtering root level terms starting with @search_string.", array('@search_string' => $search_string)));
+    drupal_set_message(l(t("Show unfiltered tree"), 'admin/content/taxonomy_manager/voc/'. $form_state['values']['vid']));
     drupal_goto('admin/content/taxonomy_manager/voc/'. $form_state['values']['vid'] .'/0/'. $search_string);
   }
 }
@@ -1527,6 +1563,57 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert
       $tids[$typed_term_tid]['tid'] = $typed_term_tid;
       $tids[$typed_term_tid]['new'] = TRUE;
     }
+  }
+  return $tids;
+}
+
+/**
+ * similar to taxonomy_manager_autocomplete_tags_get_tids, but used for searching terms
+ * takes synonyms and selected subtrees into account
+ *
+ * @param $typed_input input string of form field
+ * @param $vid vocabulary id
+ * @param $include_synonyms TRUE if search should include synonyms
+ * @param $parents array of parents
+ * @return array of term ids
+ */
+function taxonomy_manager_autocomplete_search_terms($typed_input, $vid, $include_synonyms = FALSE, $parents = array()) {
+  $tids = array();
+  
+  $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+  preg_match_all($regexp, $typed_input, $matches);
+  $typed_terms = array_unique($matches[1]);
+
+  foreach ($typed_terms as $typed_term) {
+    $typed_term = str_replace('""', '"', preg_replace('/^"(.*)"$/', '\1', $typed_term));
+    $typed_term = trim($typed_term);
+    if ($typed_term == "") { 
+      continue; 
+    }
+    if ($include_synonyms) {
+      $search_sql = db_query("SELECT td.tid FROM {term_data} td LEFT JOIN {term_synonym} ts ON td.tid = ts.tid WHERE td.vid = %d AND (td.name = '%s' OR ts.name = '%s')", $vid, $typed_term, $typed_term);
+    }
+    else {
+      $search_sql = db_query("SELECT td.tid FROM {term_data} td WHERE td.vid = %d AND td.name = '%s'", $vid, $typed_term);
+    }
+    while ($obj = db_fetch_object($search_sql)) {
+      $tids[] = $obj->tid; 
+    }
+    
+    if (count($parents)) {
+      $filtered_tids = array();
+      foreach ($tids as $tid) {
+        $parents_all = taxonomy_get_parents_all($tid);
+        foreach ($parents_all as $key => $parent) {
+          if (in_array($parent->tid, $parents)) {
+            $filtered_tids[] = $tid;
+            break; 
+          } 
+        }
+      }
+      $tids = $filtered_tids;
+    }
+    
   }
   return $tids;
 }
