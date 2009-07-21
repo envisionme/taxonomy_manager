@@ -47,10 +47,10 @@ Drupal.attachTermData = function(ul) {
 */
 Drupal.activeTermSwapHighlight = function(link) {
   try {
-    $(active_term).parents('.term-item').removeClass('highlightActiveTerm');
+    $(active_term).parents('div.form-item:first').removeClass('highlightActiveTerm');
   } catch(e) {}
   active_term = link;
-  $(active_term).parents('.term-item').addClass('highlightActiveTerm');
+  $(active_term).parents('div.form-item:first').addClass('highlightActiveTerm');
 }
 
 /**
@@ -75,6 +75,7 @@ Drupal.TermData = function(tid, href, li) {
   this.li = li;
   this.form_build_id = $(' :input[name="form_build_id"]').val();
   this.form_id = $(' :input[name="form_id"]').val();
+  this.div = $('#taxonomy-term-data');
 }
 
 
@@ -96,11 +97,9 @@ Drupal.TermData.prototype.load = function() {
 /**
  * inserts received html data into form wrapper
  */
-Drupal.TermData.prototype.insertForm = function(data) {
-  var termdata = this;
-  termdata.div = $('#taxonomy-term-data');
-  $(termdata.div).html(data);
-  termdata.form(); 
+Drupal.TermData.prototype.insertForm = function(data) { 
+  $(this.div).html(data);
+  this.form(); 
 }
 
 /**
@@ -119,7 +118,7 @@ Drupal.TermData.prototype.form = function() {
   this.param['tid'] = this.tid;
   this.param['vid'] = $('input#edit-term-data-vid').attr('value');
   
-  $('.term-data-autocomplete-add > span').click(function() {
+  $(this.div).find('div.term-data-autocomplete-add > span').click(function() {
     termdata.param['attr_type'] = $(this).attr("class");
     termdata.param['value'] = $(this).parents("tr").find('input:text').attr('value');
     termdata.param['op'] = 'add';
@@ -129,7 +128,7 @@ Drupal.TermData.prototype.form = function() {
     termdata.send();
   });
   
-  $('.taxonomy-term-data-operations > span').click(function() {
+  $(this.div).find('td.taxonomy-term-data-operations > span').click(function() {
     termdata.param['attr_type'] = $(this).attr("class");
     termdata.param['info'] = $(this).attr("id");
     var value = $(this).parent().siblings(".taxonomy-term-data-name").attr("id");
@@ -141,14 +140,14 @@ Drupal.TermData.prototype.form = function() {
     termdata.send();
   });
   
-  $('#edit-term-data-weight').change(function() {
+  $(this.div).find('#edit-term-data-weight').change(function() {
     termdata.param['value'] = this.value;
     termdata.param['attr_type'] = 'weight';
     termdata.param['op'] = 'update';
     termdata.send();
   });
 
-  $('#edit-term-data-save').click(function() {
+  $(this.div).find('#edit-term-data-save').click(function() {
     termdata.param['value'] = $('#edit-term-data-name').attr('value');
     termdata.updateTermName();
   });
@@ -168,9 +167,9 @@ Drupal.TermData.prototype.send = function() {
       url: url,
       dataType: 'json',
       success: function(response, status) {
-        termdata.update();
+        termdata.update(); 
         termdata.insertForm(response.data);
-      },
+      }
     });
   }
 }
@@ -214,6 +213,6 @@ Drupal.TermData.prototype.updateTermName = function() {
   var name = this.param['value'];
   $('fieldset#taxonomy-term-data-fieldset legend').html(name);
   $('ul.treeview li input:hidden[class=term-id][value='+ this.tid +']')
-    .siblings('div.term-item')
-    .find('div.form-item label.option a').html(name);
+    .siblings('div.form-item')
+    .find('label.option a').html(name);
 }

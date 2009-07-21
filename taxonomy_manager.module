@@ -583,7 +583,7 @@ function _taxonomy_manager_tree_term_get_class($current_index, $tree, $expand) {
       $class = ($expand) ? 'collapsable ' : 'expandable ';
   }
   else {
-      $class = ($expand) ? 'lastCollapsable ' : 'lastExpandable ';;
+      $class = ($expand) ? 'lastCollapsable ' : 'lastExpandable ';
   }
   return $class;
 }
@@ -593,7 +593,13 @@ function _taxonomy_manager_tree_term_get_class($current_index, $tree, $expand) {
  * @return children count
  */
 function _taxonomy_manager_tree_term_children_count($tid) {
-  return db_result(db_query("SELECT COUNT(tid) FROM {term_hierarchy} WHERE parent = %d", $tid));
+  static $tids = array();
+
+  if (!isset($tids[$tid])) {
+    $tids[$tid] = db_result(db_query("SELECT COUNT(tid) FROM {term_hierarchy} WHERE parent = %d", $tid));
+  }
+
+  return $tids[$tid];
 }
 
 /**
@@ -727,7 +733,7 @@ function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $
   $output = drupal_render($siblings_form);
   
   //cutting of <ul> and ending </ul> ... can this be done cleaner?
-  $output = drupal_substr($output, 4, -5);
+  $output = drupal_substr($output, 21, -5);
 
   print $output;
   exit();
@@ -845,18 +851,21 @@ function theme_taxonomy_manager_tree(&$element) {
  * @return html lists
  */
 function theme_taxonomy_manager_tree_elements($element) {
-  $output .= "<ul>";
+  $output .= '<ul class="treeview">';
   
   if (is_array($element)) {  
     foreach (element_children($element) as $tid) {
       if (is_numeric($tid)) {
         $output .= '<li'. drupal_attributes($element[$tid]['#attributes']) .'>';
+        if (strpos($element[$tid]['#attributes']['class'], 'has-children') !== FALSE || is_array($element[$tid]['children'])) {
+          $output .= '<div class="hitArea"></div>'; 
+        }
         $output .='<div class="term-line">';
-        $output .='<div class="term-item">';
+        //$output .='<div class="term-item">';
         $output .= drupal_render($element[$tid]['checkbox']);
-        $output .= '</div>';
+        //$output .= '</div>';
         
-        $output .= '<div class="term-operations">';
+        $output .= '<div class="term-operations" style="display: none;">';
         $output .= drupal_render($element[$tid]['operations']);
         $output .= '</div>';
         

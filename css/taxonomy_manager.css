@@ -77,7 +77,7 @@
 }
 
 .term-has-more-siblings {
-  float: right;
+  dispaly: inline;
   height: 38px;
   cursor: pointer;
 }
@@ -93,6 +93,7 @@
 
 .term-operations {
   display: inline;
+  padding-left: 5px;
 }
 
 .term-operations span.select-all-children {

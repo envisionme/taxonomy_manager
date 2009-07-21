@@ -63,29 +63,25 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
   if (!disable) {
     var url = Drupal.settings.updateWeight['url'];
   
-    var termArrowsClass = '.term-operations';
-    var termLineClass = '.term-line';
-    var termUpClass = '.term-up';
-    var termDownClass = '.term-down';
+    var termLineClass = 'div.term-line';
+    var termUpClass = 'div.term-up';
+    var termDownClass = 'div.term-down';
   
     if (parent && currentIndex) {
       parent = $(parent).slice(currentIndex);
     }
     if (parent) {
-      termArrowsClass = $(parent).find(termArrowsClass);
       termLineClass = $(parent).find(termLineClass);
       termUpClass = $(parent).find(termUpClass);
       termDownClass = $(parent).find(termDownClass);
     }
   
-    $(termArrowsClass).hide();
-  
     $(termLineClass).mouseover(function() {
-      $(this).find('.term-operations').show();
+      $(this).find('div.term-operations').show(); 
     });
   
     $(termLineClass).mouseout(function() {
-      $(this).find('.term-operations').hide();
+      $(this).find('div.term-operations').hide(); 
     });
   
   
@@ -98,9 +94,9 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     
       $(downTerm).find(termLineClass).unbind('mouseover');
       setTimeout(function() {
-        $(upTerm).find('.term-operations').hide();
+        $(upTerm).find('div.term-operations').hide();
         $(downTerm).find(termLineClass).mouseover(function() {
-          $(this).find('.term-operations').show();
+          $(this).find('div.term-operations').show();
         });
       }, 1500);
     
@@ -116,9 +112,9 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     
       $(upTerm).find(termLineClass).unbind('mouseover');
       setTimeout(function() {
-        $(downTerm).find('.term-operations').hide();
+        $(downTerm).find('div.term-operations').hide();
         $(upTerm).find(termLineClass).mouseover(function() {
-          $(this).find('.term-operations').show();
+          $(this).find('div.term-operations').show();
         });
       }, 1500);
     
