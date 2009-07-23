@@ -57,8 +57,11 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
 /**
  * adds collapsible treeview to a given list
  */
-Drupal.TaxonomyManagerTree.prototype.attachTreeview = function(ul) {
+Drupal.TaxonomyManagerTree.prototype.attachTreeview = function(ul, currentIndex) {
   var tree = this;
+  if (currentIndex) {
+    ul = $(ul).slice(currentIndex);
+  }
   var expandableParent = $(ul).find("div.hitArea");
   $(expandableParent).click(function() {
     var li = $(this).parent();
@@ -89,21 +92,6 @@ Drupal.TaxonomyManagerTree.prototype.swapClasses = function(node, c1, c2) {
   } 
 }
 
-/**
- * adds treeview to next siblings
- */
-Drupal.TaxonomyManagerTree.prototype.attachTreeviewToSiblings = function(all, currentIndex) {
-  var tree = this;
-  var nextSiblings = $(all).slice(currentIndex);
-  $(nextSiblings).filter('li.has-children').find('div.hitArea').each(function() {
-    $(this).find("ul").hide();
-    $(this).click(function() {
-      var li = $(this).parent();
-      tree.toggleTree(li);
-      tree.loadChildForm(li);
-    });
-  });
-}
 
 /**
  * loads child terms and appends html to list
@@ -126,7 +114,7 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
     param['tree_id'] = this.treeId;
     
     $.get(url, param, function(data) {
-      $(li).find("ul").replaceWith(data);
+      $(li).append(data);
       var ul = $(li).find("ul");
       tree.attachTreeview(ul);
       tree.attachSiblingsForm(ul);
@@ -207,7 +195,7 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
     $.get(url, param, function(data) {
       $(li).find(".term-has-more-siblings").remove();
       $(li).after(data);
-      tree.attachTreeviewToSiblings($('li', li.parentNode), currentIndex);
+      tree.attachTreeview($('li', li.parentNode), currentIndex);
       tree.attachSelectAllChildren($('li', li.parentNode), currentIndex);
       
       //only attach other features if enabled!
@@ -317,12 +305,10 @@ Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
     }*/
     $(span).removeClass("select-all-children").addClass("unselect-all-children");
     $(span).attr("title", Drupal.t("Unselect all children"));
-    $(span).parents("li:first").find('ul').each(function() {
-      if (this.style.display != "none") {
-        var first_element = $(this).find('.term-line:first');
-        $(first_element).parent().siblings("li").find(' :checkbox').attr('checked', true); 
-        $(first_element).find(' :checkbox').attr('checked', true);
-      }
+    $(span).parents("li:first").find('ul:first').each(function() {
+      var first_element = $(this).find('.term-line:first');
+      $(first_element).parent().siblings("li").find('div.term-line:first :checkbox').attr('checked', true);
+      $(first_element).find(' :checkbox').attr('checked', true);
     });
   }
   else {

@@ -861,9 +861,7 @@ function theme_taxonomy_manager_tree_elements($element) {
           $output .= '<div class="hitArea"></div>'; 
         }
         $output .='<div class="term-line">';
-        //$output .='<div class="term-item">';
         $output .= drupal_render($element[$tid]['checkbox']);
-        //$output .= '</div>';
         
         $output .= '<div class="term-operations" style="display: none;">';
         $output .= drupal_render($element[$tid]['operations']);
@@ -887,10 +885,6 @@ function theme_taxonomy_manager_tree_elements($element) {
         
         if (is_array($element[$tid]['children'])) {
           $output .= theme('taxonomy_manager_tree_elements', $element[$tid]['children']);
-        }
-        
-        if (strstr($element[$tid]['#attributes']['class'], 'has-children')) {
-          $output .= "<ul><li></li></ul>";
         }
         
         $output .='</li>';
