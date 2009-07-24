@@ -45,6 +45,7 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.form = $(this.ul).parents('form');
   this.form_build_id = $(this.form).find(':input[name="form_build_id"]').val();
   this.form_id = $(this.form).find(' :input[name="form_id"]').val();
+  this.language = "";
   this.treeId = id;
   this.vocId = vid; 
 
@@ -52,6 +53,7 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.attachTreeview(this.ul);
   this.attachSiblingsForm(this.ul);
   this.attachSelectAllChildren(this.ul);
+  this.attachLanguageSelector();
 }
 
 /**
@@ -112,6 +114,7 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
     param['form_build_id'] = this.form_build_id;
     param['form_id'] = this.form_id;
     param['tree_id'] = this.treeId;
+    param['language'] = this.language;
     
     $.get(url, param, function(data) {
       $(li).append(data);
@@ -146,7 +149,14 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
   }
   var tree = this;
   url += '/'+ this.treeId +'/'+ this.vocId +'/0/true';
-  $.get(url, null, function(data) {
+  
+  var param = new Object();
+    param['form_build_id'] = this.form_build_id;
+    param['form_id'] = this.form_id;
+    param['tree_id'] = this.treeId;
+    param['language'] = this.language;
+    
+  $.get(url, param, function(data) {
     $('#'+ tree.treeId).html(data); 
     var ul = $('#'+ tree.treeId).find("ul");
     tree.attachTreeview(ul);
@@ -191,6 +201,7 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
     param['form_build_id'] = this.form_build_id;
     param['form_id'] = this.form_id;
     param['tree_id'] = this.treeId;
+    param['language'] = this.language;
     
     $.get(url, param, function(data) {
       $(li).find(".term-has-more-siblings").remove();
@@ -318,6 +329,16 @@ Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
   }
 }
 
+/**
+ * language selector
+ */
+Drupal.TaxonomyManagerTree.prototype.attachLanguageSelector = function() {
+  var tree = this;
+  $('#edit-taxonomy-manager-top-language').change(function() {
+    tree.language = $(this).val();
+    tree.loadRootForm();
+  });
+}
 
 
 /**

@@ -288,6 +288,7 @@ function taxonomy_manager_term_page($str_tids = '', $depth = 0, $op = 'page') {
  *   #tree_is_required: use #tree_is_required instead of #required if you are using the tree within an other
  *                      element and don't want that both are internally required, because it might cause that
  *                      error messages are shown twice (see content_taxonomy_tree)
+ *   #language lang code if i18n is enabled and multilingual vocabulary
  * 
  * defining term operations:
  *   to add values (operations,..) to each term, add a function, which return a form array
@@ -351,7 +352,7 @@ function taxonomy_manager_tree_process_elements($element) {
   }
   
   
-  $tree = _taxonomy_manager_tree_get_item($element['#vid'], $element['#parent'], $element['#pager'], $element['#siblings_page'], $element['#search_string']);
+  $tree = _taxonomy_manager_tree_get_item($element['#vid'], $element['#parent'], $element['#pager'], $element['#siblings_page'], $element['#search_string'], $element['#language']);
   
   if ($element['#pager'] && !($element['#parent'] || $element['#siblings_page'])) {
     $element['pager'] = array('#value' => theme('pager', NULL, variable_get('taxonomy_manager_pager_tree_page_size', 50)));
@@ -384,8 +385,11 @@ function taxonomy_manager_tree_process_elements($element) {
  * @param $siblings_page
  * @return array with term elements
  */
-function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $siblings_page = 0, $search_string = NULL) {
+function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $siblings_page = 0, $search_string = NULL, $language_code = NULL) {
   $tree = array();
+  if (module_exists('i18ntaxonomy') && $language_code != "") {
+    return _taxonomy_manager_tree_get_translated_item($vid, $parent, $pager, $siblings_page, $search_string, $language_code);
+  }
   if ($pager) {
     if ($parent || $siblings_page) {
       $start = ($siblings_page-1) * variable_get('taxonomy_manager_pager_tree_page_size', 50);
@@ -407,7 +411,44 @@ function _taxonomy_manager_tree_get_item($vid, $parent = 0, $pager = FALSE, $sib
   else {
     $tree = taxonomy_get_tree($vid, $parent);
   }
-  
+  return $tree;
+}
+
+/**
+ * loads translated tree with terms (depending on various settings)
+ *
+ * @param $vid
+ * @param $parent
+ * @param $pager
+ * @param $siblings_page
+ * @return array with term elements
+ */
+function _taxonomy_manager_tree_get_translated_item($vid, $parent = 0, $pager = FALSE, $siblings_page = 0, $search_string = NULL, $language_code = NULL) {
+  $tree = array();
+  if ($language_code == "no language") {
+    $language_code = ""; //get terms where no language is specified
+  }
+  if ($pager) {
+    if ($parent || $siblings_page) {
+      $start = ($siblings_page-1) * variable_get('taxonomy_manager_pager_tree_page_size', 50);
+      $result = db_query_range("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = %d AND t.language = '%s' ORDER BY weight, name", $vid, $parent, $language_code, $start, variable_get('taxonomy_manager_pager_tree_page_size', 50));
+    }
+    else {
+      if ($search_string) {
+        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 AND name LIKE ('%%%s%%') AND t.language = '%s' ORDER BY weight, name", variable_get('taxonomy_manager_pager_tree_page_size', 50), 0, NULL, array($vid, $search_string, $language_code));
+      }
+      else {
+        $result = pager_query("SELECT t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE vid = %d AND h.parent = 0 AND t.language = '%s' ORDER BY weight, name", variable_get('taxonomy_manager_pager_tree_page_size', 50), 0, NULL, array($vid, $language_code));
+      }
+    }
+
+    while ($term = db_fetch_object($result)) {
+      $tree[] = $term;
+    }
+  }
+  else {
+    $tree = i18ntaxonomy_get_tree($vid, $language_code, $parent);
+  }
   return $tree;
 }
 
@@ -666,6 +707,7 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
     '#vid' => $vid, 
     '#parent' => $parent, 
     '#pager' => TRUE,
+    '#language' => $params['language'],
   );
   if (!$root_level) { //TODO ?
     $child_form['#siblings_page'] = 1;
@@ -703,6 +745,7 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent) {
  * @param $parent if in hierarchies, parent id
  */
 function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $parent = 0) {
+  $params = $_GET;
   $GLOBALS['devel_shutdown'] = FALSE; //prevent devel queries footprint
   $form_state = array('submitted' => FALSE);
   
@@ -714,6 +757,7 @@ function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $
     '#parent' => $parent, 
     '#pager' => TRUE, 
     '#siblings_page' => $page+1,
+    '#language' => $params['language'],
   );
   
   $opertions_callback = str_replace('-', '_', $tree_id) .'_operations';

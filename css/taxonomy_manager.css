@@ -24,12 +24,17 @@
 #taxonomy-manager-tree-size {
   padding: 0px;
   margin: 0px;
-  height: 7px;
+  /*height: 7px;*/
   text-align: right;
+  display: inline;
 }
 
 #taxonomy-manager-tree-size img {
   cursor: pointer;
+}
+
+#taxonomy-manager-tree-wrapper {
+  margin-top: 0em;
 }
 
 .treeview, .treeview ul {
@@ -132,6 +137,21 @@
 }
 .highlightActiveTerm a{
   font-weight: bold;
+}
+
+#edit-taxonomy-manager-top-language-wrapper {
+  padding: 0;
+  padding-right: 0.5em;
+  margin: 0; 
+  text-align: right;
+  display: inline;
+}
+#edit-taxonomy-manager-top-language-wrapper label {
+  display: inline;
+}
+
+#taxonomy-manager-tree-top {
+  text-align: right;
 }
 
 /**

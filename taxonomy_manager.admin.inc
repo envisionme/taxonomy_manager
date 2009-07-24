@@ -92,7 +92,23 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#tree' => TRUE,
   );
   
-  $form['taxonomy']['manager']['markup'] = array('#value' => '<div id="taxonomy-manager-tree-size">'. theme("image", $module_path ."images/grippie.png", "decrease tree window size", NULL, array('class' => "div-grippie")) .'</div>');
+  $form['taxonomy']['manager']['top'] = array(
+    '#value' => '', 
+    '#prefix' => '<div id="taxonomy-manager-tree-top">', 
+    '#suffix' => '</div>',
+  );
+  
+  if (module_exists('i18ntaxonomy')) {
+    if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
+      $form['taxonomy']['manager']['top']['language'] = array(
+        '#type' => 'select',
+        '#title' => t('Language'),
+        '#options' => array('' => '', 'no language' => t('no language')) + locale_language_list('name'),
+      );
+    }
+  }
+ 
+  $form['taxonomy']['manager']['top']['size'] = array('#value' => '<div id="taxonomy-manager-tree-size">'. theme("image", $module_path ."images/grippie.png", "decrease tree window size", NULL, array('class' => "div-grippie")) .'</div>');
   
   $form['taxonomy']['manager']['tree'] = array( 
     '#type' => 'taxonomy_manager_tree', 
