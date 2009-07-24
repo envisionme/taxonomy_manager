@@ -100,9 +100,11 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   
   if (module_exists('i18ntaxonomy')) {
     if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
+      $language = language_default();
       $form['taxonomy']['manager']['top']['language'] = array(
         '#type' => 'select',
         '#title' => t('Language'),
+        '#default_value' => $language->language,
         '#options' => array('' => '', 'no language' => t('no language')) + locale_language_list('name'),
       );
     }
@@ -115,6 +117,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#vid' => $vid, 
     '#pager' => TRUE,
     '#search_string' => ($tid) ? NULL : $filter,
+    '#language' => isset($language) ? $language->language : '',
   );
   
   $search_description = t("You can search directly for exisiting terms. 
@@ -721,10 +724,27 @@ function taxonomy_manager_form_term_data($tid) {
   $form['term_data']['relations']['#weight'] = '51';
   
   $parents = taxonomy_get_parents($term->tid);
-  $p_add = TRUE;
   $form['term_data']['parents'] = _taxonomy_manager_form_term_data_lists($term, $parents, t('Parents'), 'parent', TRUE); 
   $form['term_data']['parents']['#tree'] = TRUE;
   $form['term_data']['parents']['#weight'] = '52';
+  
+  if (module_exists('i18ntaxonomy')) {
+    if (i18ntaxonomy_vocabulary($term->vid) == I18N_TAXONOMY_TRANSLATE) {
+      $translations = i18ntaxonomy_term_get_translations(array('tid' => $term->tid), FALSE);
+      $form['term_data']['translations'] = _taxonomy_manager_form_term_data_translations($term, $translations, t('Translations'), 'translation', TRUE); 
+      $form['term_data']['translations']['#tree'] = TRUE;
+      $form['term_data']['translations']['#weight'] = '53';
+      
+      $form['term_data']['language'] = array(
+        '#type' => 'select',
+        '#title' => t('Language'),
+        '#default_value' => isset($term) && !empty($term->language) ? $term->language : '',
+        '#options' => array('' => '') + locale_language_list('name'),
+        '#description' => t('This term belongs to a multilingual vocabulary. You can set a language for it.'),
+        '#weight' => 54,
+      );
+    }
+  }
   
   $form['term_data']['weight'] = array( 
     '#type' => 'weight', 
@@ -733,10 +753,11 @@ function taxonomy_manager_form_term_data($tid) {
     '#prefix' => '<div id="term-data-weight">', 
     '#suffix' => '</div>', 
     '#title' => t('Weight'), 
-    '#weight' => 53,
+    '#weight' => 55,
   );
+  
   $link_img = theme("image", $module_path ."images/link-small.png", "link to term page");
-  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '54');    
+  $form['term_data']['link'] = array('#value' => '<br />'. l($link_img .'&nbsp;'. t('Go to the term page'), taxonomy_term_path($term), array('attributes' => array('rel' => 'tag', 'title' => strip_tags($term->description), 'target' => '_blank'), 'html' => TRUE)), '#weight' => '56');    
   $form['term_data']['vid'] = array('#type' => 'hidden', '#value' => $term->vid);
   
   return $form;
@@ -790,6 +811,69 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       '#prefix' => '<div class="term-data-autocomplete">',
       '#suffix' => '</div>',
       '#size' => 35,
+    );
+    if ($autocomplete) {
+      $form['op']['add']['#autocomplete_path'] = 'taxonomy_manager/autocomplete/'. $term->vid;
+    }
+  
+    $form['op']['add_button'] = array( 
+      '#value' => '<span class="'. $attr .'" title="'. t('Add') .'">&nbsp;</span>', 
+      '#prefix' => '<div class="term-data-autocomplete-add">',
+      '#suffix' => '</div>',
+    );
+  }
+  
+  return $form;
+
+}
+
+function _taxonomy_manager_form_term_data_translations($term, $translations, $header_type, $attr, $autocomplete = TRUE, $add = TRUE) {
+  $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
+  $rows = array();
+  
+  $form['#theme'] = 'taxonomy_manager_term_data_extra';
+  $form['data'] = array();
+
+  foreach ($translations as $tid => $value) {
+    if (is_object($value)) {
+      $name = $value->name;
+      $id = $value->tid;
+      $vid = $value->vid;
+      $lang = $value->language;
+      $trid = $value->trid;
+      $extra_info = taxonomy_manager_tree_term_extra_info($value);
+    }
+    $form['data'][$id][] = array(
+      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid .'/'. $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
+      '#row-class' => 'taxonomy-term-data-name',
+      '#row-id' => 'term-'. $id, 
+    );
+    $form['data'][$id][] = array(
+      '#value' => check_plain(locale_language_name($lang)),
+      '#row-class' => 'taxonomy-term-data-lang',
+      '#row-id' => 'term-lang-'. $id, 
+    );
+    $form['data'][$id][] = array(
+      '#value' => '<span class="'. $attr .'" title="'. t('Remove') .'">&nbsp;</span>',
+      '#row-class' => 'taxonomy-term-data-operations',
+    );
+  }
+  $form['headers'][] = array('#value' => $header_type);
+  $form['headers'][] = array('#value' => t('Language'));
+  $form['headers'][] = array('#value' => '');
+
+  $form['op'] = array();
+  if ($add) {
+    $form['op']['add'] = array( 
+      '#type' => 'textfield',
+      '#prefix' => '<div class="term-data-autocomplete">',
+      '#suffix' => '</div>',
+      '#size' => 35,
+    );
+    $form['op']['lang'] = array( 
+      '#type' => 'select',
+      '#options' => array('' => '') + locale_language_list('name'),
+      '#default value' => '',
     );
     if ($autocomplete) {
       $form['op']['add']['#autocomplete_path'] = 'taxonomy_manager/autocomplete/'. $term->vid;
@@ -889,6 +973,12 @@ function taxonomy_manager_form_add_submit($form, &$form_state) {
     $term['vid'] = $form_state['values']['vid'];
     $term['parent'] = $selected_tids;
     taxonomy_save_term($term);
+    if (module_exists('i18ntaxonomy')) {
+      if (i18ntaxonomy_vocabulary($form_state['values']['vid']) == I18N_TAXONOMY_TRANSLATE && $form_state['values']['taxonomy']['manager']['top']['language'] != "") {
+        _i18ntaxonomy_term_set_lang($term['tid'], $form_state['values']['taxonomy']['manager']['top']['language']);
+      }
+      drupal_set_message(t("Saving terms to language @lang", array('@lang' => locale_language_name($form_state['values']['taxonomy']['manager']['top']['language']))));
+    }
   }
 
   taxonomy_manager_update_voc($form_state['values']['vid'], $selected_tids);
@@ -976,7 +1066,7 @@ function taxonomy_manager_form_move_validate($form, &$form_state) {
   }
   else if (_taxonomy_manager_check_duplicates($form_state['values']['vid'], $form_state['values']['move']['parents'], $error_msg)) {
     form_set_error('move', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").");
-        $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = TRUE;
   }
   
   $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['move']['parents'], $form_state['values']['vid'], FALSE);
@@ -988,6 +1078,10 @@ function taxonomy_manager_form_move_validate($form, &$form_state) {
 
   if (!taxonomy_manager_check_circular_hierarchy($selected_tids, $parents)) {
     form_set_error('move', t('Invalid selection. The resulting hierarchy would contain circles, which is not allowed. A term cannot be a parent of itself.')); 
+    $form_state['rebuild'] = TRUE;
+  }
+  else if (!taxonomy_manager_check_language($form_state['values']['vid'], $selected_tids, $typed_parents)) {
+    form_set_error('move', t('Terms must be of the same language')); 
     $form_state['rebuild'] = TRUE;
   }
 }
@@ -1025,6 +1119,40 @@ function taxonomy_manager_check_circular_hierarchy($tids, $new_parents_tids) {
   return TRUE;
 }
 
+/**
+ * checks if terms in move or merge operation are of the same language
+ *
+ * returns TRUE if operation allowed, else FALSE (different languages)
+ */
+function taxonomy_manager_check_language($vid, $selected_tids, $parents) {
+  if (module_exists('i18ntaxonomy')) {
+    if (count($parents) && count($selected_tids)) {
+      $term = array_pop($parents);
+      $lang = _taxonomy_manager_term_get_lang($term['tid']);
+      if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
+        foreach ($parents as $parent) {
+          if (_taxonomy_manager_term_get_lang($parent->tid) != $lang) {
+            return FALSE; 
+          }
+        }
+        foreach ($selected_tids as $tid) {
+          if (_taxonomy_manager_term_get_lang($tid) != $lang) {
+            return FALSE;
+          }
+        } 
+      }
+    }
+  }
+  return TRUE;
+}
+
+function _taxonomy_manager_term_get_lang($tid) {
+  if (module_exists('i18ntaxonomy')) {
+    return db_result(db_query("SELECT language FROM {term_data} WHERE tid = %d", $tid)); 
+  }
+  return "";
+}
+
 
 /**
  * Submit handler for moving terms
@@ -1032,7 +1160,7 @@ function taxonomy_manager_check_circular_hierarchy($tids, $new_parents_tids) {
 function taxonomy_manager_form_move_submit($form, $form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
-  $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['move']['parents'], $form_state['values']['vid']);
+  $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['move']['parents'], $form_state['values']['vid'], TRUE, $form_state['values']['taxonomy']['manager']['top']['language']);
 
   $parents = array();
   foreach ($typed_parents as $parent_info) {
@@ -1077,7 +1205,8 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
   preg_match_all($regexp, $form_state['values']['merge']['main_term'], $matches);
   $main_terms = $matches[1];
   $error_msg = "";
-   
+  $typed_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid'], FALSE);
+  
   if (!is_array($main_terms) || count($main_terms) == 0 || empty ($main_terms[0])) {
     form_set_error('merge][main_term', t('Please enter a name into "Resulting merged term"'));
     $form_state['rebuild'] = TRUE;
@@ -1100,8 +1229,6 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
         $form_state['rebuild'] = TRUE;
   }
   else if ($form_state['values']['merge']['options']['collect_parents']) {
-    $typed_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid'], FALSE);
-
     $main_terms = array();
     foreach ($typed_terms as $term_info) {
       $main_terms[$term_info['tid']] = $term_info['tid'];
@@ -1113,6 +1240,10 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
       }
     }
   }
+  else if (!taxonomy_manager_check_language($form_state['values']['vid'], $selected_tids, $typed_terms)) {
+    form_set_error('merge', t('Terms must be of the same language')); 
+    $form_state['rebuild'] = TRUE;
+  }
 }
 
 /**
@@ -1121,7 +1252,7 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
 function taxonomy_manager_form_merge_submit($form, $form_state) {
   $selected_tids = array();
   $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
-  $main_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid']);
+  $main_terms = taxonomy_manager_autocomplete_tags_get_tids($form_state['values']['merge']['main_term'], $form_state['values']['vid'], TRUE, $form_state['values']['taxonomy']['manager']['top']['language']);
   $main_term = array_shift($main_terms);
   
   $new_inserted = FALSE;
@@ -1195,6 +1326,7 @@ function taxonomy_manager_settings() {
  */
 function taxonomy_manager_term_data_edit() {
   $param = $_POST;
+
   $msg = "Changes successfully saved";
   $is_error_msg = FALSE;
   
@@ -1214,7 +1346,10 @@ function taxonomy_manager_term_data_edit() {
     db_query("UPDATE {term_data} SET name = '%s' WHERE tid = %d", $param['term_data']['name'], $tid);
     db_query("UPDATE {term_data} SET description = '%s' WHERE tid = %d", $param['term_data']['description'], $tid);
   }
-
+  if ($op == 'add') {
+    $typed_terms = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, FALSE);
+  }
+  
   if ($op == 'add' && ($attr_type == 'parent' || $attr_type == 'related')) {
     //check for unique names
     $error_msg = "";
@@ -1222,13 +1357,15 @@ function taxonomy_manager_term_data_edit() {
       $msg = t("Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").";
       $is_error_msg = TRUE; 
     }
+    if(!taxonomy_manager_check_language($vid, array($tid), $typed_terms)) {
+      $msg = t("Terms must be of the same language");
+      $is_error_msg = TRUE; 
+    }
   }
   else if ($op == 'add' && $attr_type == 'parent') {
     //validation for consistent hierarchy
-    $typed_parents = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, FALSE);
-
     $parents = array();
-    foreach ($typed_parents as $parent_info) {
+    foreach ($typed_terms as $parent_info) {
       $parents[(int) $parent_info['tid']] = (int) $parent_info['tid'];
     }
     $tids = array();
@@ -1237,6 +1374,39 @@ function taxonomy_manager_term_data_edit() {
       $msg = t('Invalid parent. The resulting hierarchy would contain circles, which is not allowed. A term cannot be a parent of itself.');
       $is_error_msg = TRUE;
     }  
+  }
+  else if ($op == 'add' && $attr_type == 'translation') {
+    $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+    preg_match_all($regexp, $values, $matches);
+    $translation_terms = array_unique($matches[1]);
+    if (count($translation_terms) > 1) {
+       $msg = t('Please provide only one term for translation');
+       $is_error_msg = TRUE; 
+    }
+    else if ($param['edit-term-data-translations-op-lang'] == $param['edit-term-data-language']) {
+      $msg = t('Invalid language selection');
+      $is_error_msg = TRUE; 
+    }
+    else {
+      $translations = i18ntaxonomy_term_get_translations(array('tid' => $tid), FALSE);
+      foreach ($translations as $translation) {
+        if ($translation->language == $param['edit-term-data-translations-op-lang']) {
+          $msg = t('Invalid language selection. Translation already exists');
+          $is_error_msg = TRUE;
+          break; 
+        }
+      }
+    }
+  }
+  else if ($attr_type == "language") {
+    $translations = i18ntaxonomy_term_get_translations(array('tid' => $tid), FALSE);
+    foreach ($translations as $translation) {
+      if ($translation->language == $values) {
+        $msg = t('Invalid language selection.');
+        $is_error_msg = TRUE;
+        break; 
+      }
+    }
   }
   
   if (!$is_error_msg) {
@@ -1252,7 +1422,7 @@ function taxonomy_manager_term_data_edit() {
       }
       else {
         $typed_term_tids = array();
-        $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $vid);
+        $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, TRUE, $param['edit-term-data-language']);
         $values = array();
         foreach ($typed_term_tids as $term_info) {
           $values[] = $term_info['tid'];
@@ -1315,6 +1485,45 @@ function taxonomy_manager_term_data_edit() {
           $msg = t("Successfully updated weight to !weight", array('!weight' => $values));
         }
         break;
+      
+      case 'language':
+        if (module_exists('i18ntaxonomy')) {
+          _i18ntaxonomy_term_set_lang($tid, $values);
+          $msg = t("Successfully updated language");
+        }
+        else {
+          $is_error_msg = TRUE;
+          $msg = t("Module i18ntaxonomy not enabled");
+        }
+        break;
+      
+      case 'translation':
+        if (module_exists('i18ntaxonomy')) {
+          if ($op == "add") {
+            $translation_term = $values[0];
+            _i18ntaxonomy_term_set_lang($translation_term, $param['edit-term-data-translations-op-lang']);
+            $trid = db_result(db_query("SELECT trid FROM {term_data} WHERE tid = %d", $tid));
+            if ($trid == 0) {
+              $trid = ((int)db_result(db_query('SELECT max(trid) FROM {term_data}'))) + 1;
+              db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d', $trid, $tid);
+            }
+            db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d', $trid, $translation_term);
+            $msg = t("Successfully added translation");
+          }
+          else if ($op == "delete") {
+            db_query('UPDATE {term_data} SET trid = 0 WHERE tid = %d', $values);
+            if (count(i18ntaxonomy_term_get_translations(array('tid' => $tid), FALSE)) == 0) {
+              db_query('UPDATE {term_data} SET trid = 0 WHERE tid = %d', $tid);
+            }
+            $msg = t("Successfully removed translation");
+          }
+        }
+        else {
+          $is_error_msg = TRUE;
+          $msg = t("Module i18ntaxonomy not enabled");
+        }
+        break;
+      
     }
     $term = (array) taxonomy_get_term($tid);
     $term['fields'] = $param['term_data']['fields'];
@@ -1549,7 +1758,7 @@ function taxonomy_manager_merge_history_update($main_tid, $merged_tids) {
  * @param $vid vocabulary id
  * @return array of term ids
  */
-function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert_new = TRUE) {
+function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert_new = TRUE, $lang = NULL) {
   $tids = array();
   
   $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
@@ -1575,6 +1784,9 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert
     if (!$typed_term_tid && $insert_new) {
       $edit = array('vid' => $vid, 'name' => $typed_term);
       $status = taxonomy_save_term($edit);
+      if (module_exists('i18ntaxonomy') && $lang != "") {
+        _i18ntaxonomy_term_set_lang($edit['tid'], $lang);
+      }
       $typed_term_tid = $edit['tid'];
       $tids[$typed_term_tid]['tid'] = $typed_term_tid;
       $tids[$typed_term_tid]['new'] = TRUE;

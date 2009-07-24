@@ -146,7 +146,14 @@ Drupal.TermData.prototype.form = function() {
     termdata.param['op'] = 'update';
     termdata.send();
   });
-
+  
+  $(this.div).find('#edit-term-data-language').change(function() {
+    termdata.param['value'] = this.value;
+    termdata.param['attr_type'] = 'language';
+    termdata.param['op'] = 'update';
+    termdata.send(); 
+  });
+  
   $(this.div).find('#edit-term-data-save').click(function() {
     termdata.param['value'] = $('#edit-term-data-name').attr('value');
     termdata.updateTermName();
@@ -189,8 +196,8 @@ Drupal.TermData.prototype.update = function() {
   }
     
   var tree = new Drupal.TaxonomyManagerTree(id, vid);
- 
-  if (this.param['attr_type'] == 'parent' || (this.param['attr_type'] == 'related' && this.param['op'] == 'add')) {
+
+  if (this.param['attr_type'] == 'parent' || (this.param['attr_type'] == 'related' && this.param['op'] == 'add') || (this.param['attr_type'] == 'language' && this.param['op'] == 'update')) {
     tree.loadRootForm();
   }
   else if (this.param['attr_type'] == 'weight') {

@@ -45,7 +45,7 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.form = $(this.ul).parents('form');
   this.form_build_id = $(this.form).find(':input[name="form_build_id"]').val();
   this.form_id = $(this.form).find(' :input[name="form_id"]').val();
-  this.language = "";
+  this.language = this.getLanguage();
   this.treeId = id;
   this.vocId = vid; 
 
@@ -198,10 +198,10 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
     url += '/'+ tree.treeId +'/'+ page +'/'+ prev_id +'/'+ parentId;
     
     var param = new Object();
-    param['form_build_id'] = this.form_build_id;
-    param['form_id'] = this.form_id;
-    param['tree_id'] = this.treeId;
-    param['language'] = this.language;
+    param['form_build_id'] = tree.form_build_id;
+    param['form_id'] = tree.form_id;
+    param['tree_id'] = tree.treeId;
+    param['language'] = tree.language;
     
     $.get(url, param, function(data) {
       $(li).find(".term-has-more-siblings").remove();
@@ -334,10 +334,20 @@ Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
  */
 Drupal.TaxonomyManagerTree.prototype.attachLanguageSelector = function() {
   var tree = this;
-  $('#edit-taxonomy-manager-top-language').change(function() {
+  var selector = $('#edit-taxonomy-manager-top-language');
+  $(selector).not(".selector-processed").change(function() {
     tree.language = $(this).val();
     tree.loadRootForm();
   });
+  $(selector).addClass("selector-processed");
+  
+}
+Drupal.TaxonomyManagerTree.prototype.getLanguage = function() {
+  var lang = $('#edit-taxonomy-manager-top-language').val();
+  if (typeof(lang) == "undefined") {
+    return "";
+  }
+  return lang;
 }
 
 
