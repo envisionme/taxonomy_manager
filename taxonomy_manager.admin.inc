@@ -100,12 +100,18 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   
   if (module_exists('i18ntaxonomy')) {
     if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
-      $language = language_default();
+      if ($tid) {
+        $language = _taxonomy_manager_term_get_lang($tid); 
+      }
+      else {
+        $lang = language_default();
+        $language = $lang->language;
+      }
       $form['taxonomy']['manager']['top']['language'] = array(
         '#type' => 'select',
         '#title' => t('Language'),
-        '#default_value' => $language->language,
-        '#options' => array('' => '', 'no language' => t('no language')) + locale_language_list('name'),
+        '#default_value' => $language,
+        '#options' => array('' => t('All'), 'no language' => t('no language')) + locale_language_list('name'),
       );
     }
   }
@@ -117,7 +123,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#vid' => $vid, 
     '#pager' => TRUE,
     '#search_string' => ($tid) ? NULL : $filter,
-    '#language' => isset($language) ? $language->language : '',
+    '#language' => isset($language) ? $language : '',
   );
   
   $search_description = t("You can search directly for exisiting terms. 
@@ -147,14 +153,19 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     '#value' => t('Search'),
     '#suffix' => '<div class="clear"></div>',
   );
-  
+  $search_options = array(
+    'synonyms' => t('Include synonyms'),
+    'subtrees' => t('Search under selected terms'),
+  );
+  if (module_exists('i18ntaxonomy')) {
+    if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
+      $search_options['language'] = t('Search within selected language');
+    }
+  }
   $form['search']['options'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Search options'),
-    '#options' => array(
-      'synonyms' => t('Include synonyms'),
-      'subtrees' => t('Search under selected terms'),
-    ),
+    '#options' => $search_options,
   );
   
   $form['toolbar'] = array( 
@@ -827,6 +838,9 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
 
 }
 
+/**
+ * helper function for generating a table listing the translations 
+ */
 function _taxonomy_manager_form_term_data_translations($term, $translations, $header_type, $attr, $autocomplete = TRUE, $add = TRUE) {
   $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
   $rows = array();
@@ -919,8 +933,11 @@ function taxonomy_manager_form_submit($form, &$form_state) {
   if ($form_state['values']['search']['options']['subtrees']) {
     $selected_tids = $form_state['values']['taxonomy']['manager']['tree']['selected_terms'];
   }
+  if ($form_state['values']['search']['options']['language']) {
+    $language = $form_state['values']['taxonomy']['manager']['top']['language']; 
+  }
   
-  $terms = taxonomy_manager_autocomplete_search_terms($search_string, $form_state['values']['vid'], $include_synonyms, $selected_tids);
+  $terms = taxonomy_manager_autocomplete_search_terms($search_string, $form_state['values']['vid'], $include_synonyms, $selected_tids, $language);
   if (count($terms) == 1) {
     $tid = $terms[0];
     drupal_set_message(t("Your search string matches exactly one term"));
@@ -1146,6 +1163,9 @@ function taxonomy_manager_check_language($vid, $selected_tids, $parents) {
   return TRUE;
 }
 
+/**
+ * returns language of a term (multilingual voc), if i18ntaxonomy enabled
+ */
 function _taxonomy_manager_term_get_lang($tid) {
   if (module_exists('i18ntaxonomy')) {
     return db_result(db_query("SELECT language FROM {term_data} WHERE tid = %d", $tid)); 
@@ -1501,7 +1521,9 @@ function taxonomy_manager_term_data_edit() {
         if (module_exists('i18ntaxonomy')) {
           if ($op == "add") {
             $translation_term = $values[0];
-            _i18ntaxonomy_term_set_lang($translation_term, $param['edit-term-data-translations-op-lang']);
+            if ($param['edit-term-data-translations-op-lang'] != "") {
+              _i18ntaxonomy_term_set_lang($translation_term, $param['edit-term-data-translations-op-lang']);
+            }
             $trid = db_result(db_query("SELECT trid FROM {term_data} WHERE tid = %d", $tid));
             if ($trid == 0) {
               $trid = ((int)db_result(db_query('SELECT max(trid) FROM {term_data}'))) + 1;
@@ -1805,8 +1827,12 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert
  * @param $parents array of parents
  * @return array of term ids
  */
-function taxonomy_manager_autocomplete_search_terms($typed_input, $vid, $include_synonyms = FALSE, $parents = array()) {
+function taxonomy_manager_autocomplete_search_terms($typed_input, $vid, $include_synonyms = FALSE, $parents = array(), $language = NULL) {
   $tids = array();
+  
+  if ($language != NULL && $language == "no language") {
+    $language = "";
+  }
   
   $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
   preg_match_all($regexp, $typed_input, $matches);
@@ -1819,10 +1845,21 @@ function taxonomy_manager_autocomplete_search_terms($typed_input, $vid, $include
       continue; 
     }
     if ($include_synonyms) {
-      $search_sql = db_query("SELECT td.tid FROM {term_data} td LEFT JOIN {term_synonym} ts ON td.tid = ts.tid WHERE td.vid = %d AND (td.name = '%s' OR ts.name = '%s')", $vid, $typed_term, $typed_term);
+      if ($language != NULL) {
+        $search_sql = db_query("SELECT td.tid FROM {term_data} td LEFT JOIN {term_synonym} ts ON td.tid = ts.tid WHERE td.vid = %d AND (td.name = '%s' OR ts.name = '%s') AND td.language = '%s'", $vid, $typed_term, $typed_term, $language);
+      }
+      else {
+        $search_sql = db_query("SELECT td.tid FROM {term_data} td LEFT JOIN {term_synonym} ts ON td.tid = ts.tid WHERE td.vid = %d AND (td.name = '%s' OR ts.name = '%s')", $vid, $typed_term, $typed_term);
+      }
+      
     }
     else {
-      $search_sql = db_query("SELECT td.tid FROM {term_data} td WHERE td.vid = %d AND td.name = '%s'", $vid, $typed_term);
+      if ($language != NULL) {
+        $search_sql = db_query("SELECT td.tid FROM {term_data} td WHERE td.vid = %d AND td.name = '%s' AND td.language = '%s'", $vid, $typed_term, $language);
+      }
+      else {
+        $search_sql = db_query("SELECT td.tid FROM {term_data} td WHERE td.vid = %d AND td.name = '%s'", $vid, $typed_term);
+      }
     }
     while ($obj = db_fetch_object($search_sql)) {
       $tids[] = $obj->tid; 
@@ -1941,11 +1978,11 @@ function taxonomy_manager_autocomplete_load($vid, $string = '') {
   $last_string = trim(array_pop($array));
   $matches = array();
   if ($last_string != '') {
-    $result = db_query_range(db_rewrite_sql("SELECT t.name FROM {term_data} t 
+    $result = db_query_range("SELECT t.name FROM {term_data} t 
       LEFT JOIN {term_synonym} s ON t.tid = s.tid
       WHERE t.vid = %d 
-      AND (LOWER(t.name) LIKE LOWER('%%%s%%') OR LOWER(s.name) LIKE LOWER('%%%s%%'))", 't', 'tid'),
-      $vid, $last_string, $last_string, 0, 20);
+      AND (LOWER(t.name) LIKE LOWER('%%%s%%') OR LOWER(s.name) LIKE LOWER('%%%s%%'))",
+      $vid, $last_string, $last_string, 0, 30);
     
     $prefix = count($array) ? '"'. implode('", "', $array) .'", ' : '';
 
