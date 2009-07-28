@@ -41,10 +41,11 @@ Drupal.behaviors.TaxonomyManagerTree = function(context) {
 
 Drupal.TaxonomyManagerTree = function(id, vid) {
   this.div = $("#"+ id);
-  this.ul = $(this.div).find("ul");
-  this.form = $(this.ul).parents('form');
-  this.form_build_id = $(this.form).find(':input[name="form_build_id"]').val();
-  this.form_id = $(this.form).find(' :input[name="form_id"]').val();
+  this.ul = $(this.div).children();
+  
+  this.form = $(this.div).parents('form');
+  this.form_build_id = $(this.form).children().children(':input[name="form_build_id"]').val();
+  this.form_id = $(this.form).children().children(' :input[name="form_id"]').val();
   this.language = this.getLanguage();
   this.treeId = id;
   this.vocId = vid; 
@@ -70,14 +71,14 @@ Drupal.TaxonomyManagerTree.prototype.attachTreeview = function(ul, currentIndex)
     tree.toggleTree(li);
     tree.loadChildForm(li);
   });
-  $(expandableParent).parent("li.expandable, li.lastExpandable").find("ul").hide();
+  $(expandableParent).parent("li.expandable, li.lastExpandable").children("ul").hide();
 }
 
 /**
  * toggles a collapsible/expandable tree element by swaping classes
  */
 Drupal.TaxonomyManagerTree.prototype.toggleTree = function(node) {
-  $(node).children("ul:first").toggle();
+  $(node).children("ul").toggle();
   this.swapClasses(node, "expandable", "collapsable");
   this.swapClasses(node, "lastExpandable", "lastCollapsable");
 }
@@ -118,7 +119,7 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
     
     $.get(url, param, function(data) {
       $(li).append(data);
-      var ul = $(li).find("ul");
+      var ul = $(li).children("ul");
       tree.attachTreeview(ul);
       tree.attachSiblingsForm(ul);
       tree.attachSelectAllChildren(ul);
@@ -140,7 +141,7 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
 /**
  * function for reloading root tree elements
  */
-Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
+Drupal.TaxonomyManagerTree.prototype.loadRootForm = function(tid) {
   if (!(Drupal.settings.childForm['url'] instanceof Array)) {
     url = Drupal.settings.childForm['url'];
   }
@@ -148,7 +149,7 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
     url = Drupal.settings.childForm['url'][0];
   }
   var tree = this;
-  url += '/'+ this.treeId +'/'+ this.vocId +'/0/true';
+  url += '/'+ this.treeId +'/'+ this.vocId +'/0/'+ tid;
   
   var param = new Object();
     param['form_build_id'] = this.form_build_id;
@@ -158,12 +159,16 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function() {
     
   $.get(url, param, function(data) {
     $('#'+ tree.treeId).html(data); 
-    var ul = $('#'+ tree.treeId).find("ul");
+    var ul = $('#'+ tree.treeId).children("ul");
     tree.attachTreeview(ul);
     tree.attachSiblingsForm(ul);
     tree.attachSelectAllChildren(ul);
     Drupal.attachUpdateWeightTerms(ul);
     Drupal.attachTermData(ul);
+    if (tid) {
+      var termLink = $(":input[value="+ tid +"]").parent().find("a");
+      Drupal.activeTermSwapHighlight(termLink);
+    } 
   });
 }
 
@@ -204,7 +209,7 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
     param['language'] = tree.language;
     
     $.get(url, param, function(data) {
-      $(li).find(".term-has-more-siblings").remove();
+      $(list).remove();
       $(li).after(data);
       tree.attachTreeview($('li', li.parentNode), currentIndex);
       tree.attachSelectAllChildren($('li', li.parentNode), currentIndex);
@@ -220,7 +225,7 @@ Drupal.TaxonomyManagerTree.prototype.attachSiblingsForm = function(ul) {
       }
       
       $(li).removeClass("last").removeClass("has-more-siblings");
-      $(li).find('.term-operations').hide();
+      $(li).children().children('.term-operations').hide();
       tree.swapClasses(li, "lastExpandable", "expandable");
       tree.attachSiblingsForm($(li).parent());
     });
@@ -240,7 +245,7 @@ Drupal.getPage = function(li) {
  * returns terms id of a given list element
  */
 Drupal.getTermId = function(li) {
-  return $(li).find("input:hidden[class=term-id]").attr("value");
+  return $(li).children().children("input:hidden[class=term-id]").attr("value");
 }
 
 /**

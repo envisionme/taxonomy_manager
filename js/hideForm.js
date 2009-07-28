@@ -26,9 +26,9 @@ Drupal.behaviors.TaxonomyManagerHideForm = function(context) {
  */
 Drupal.attachHideForm = function(div, show_button, hide_button) {
   var hide = true;
-  div = "#"+ div;
-  show_button = "#"+ show_button;
-  hide_button = "#"+ hide_button;
+  div = $("#"+ div);
+  show_button = $("#"+ show_button);
+  hide_button = $("#"+ hide_button);
   
   //don't hide if there is an error in the form
   $(div).find("input").each(function() {

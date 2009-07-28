@@ -15,12 +15,14 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
     if (!(settings['id'] instanceof Array)) {
       if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) {
         $('#taxonomy-manager-toolbar').addClass('tm-termData-processed');
-        var ul = $('#'+ settings['id']).find("ul");
-        Drupal.attachTermData(ul);
+        var tree = $('#'+ settings['id']);
+        Drupal.attachTermData(tree);
       }
       
       var tid = $('#edit-term-data-tid').val();
       if (tid) {
+        var termLink = $(":input[value="+ tid +"]").parent().find("a");
+        Drupal.activeTermSwapHighlight(termLink);
         var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
         var termdata = new Drupal.TermData(tid, url);
         termdata.form();
@@ -198,7 +200,7 @@ Drupal.TermData.prototype.update = function() {
   var tree = new Drupal.TaxonomyManagerTree(id, vid);
 
   if (this.param['attr_type'] == 'parent' || (this.param['attr_type'] == 'related' && this.param['op'] == 'add') || (this.param['attr_type'] == 'language' && this.param['op'] == 'update')) {
-    tree.loadRootForm();
+    tree.loadRootForm(this.tid);
   }
   else if (this.param['attr_type'] == 'weight') {
     var parentLi = $(this.li).parents("li");
@@ -208,7 +210,7 @@ Drupal.TermData.prototype.update = function() {
     else {
       //no parent li --> root level terms
       //load whole Tree
-      tree.loadRootForm();
+      tree.loadRootForm(this.tid);
     }
   }
 }
@@ -217,7 +219,7 @@ Drupal.TermData.prototype.update = function() {
  * updates term name in tree structure
  */
 Drupal.TermData.prototype.updateTermName = function() {
-  var name = this.param['value'];
+  var name = Drupal.checkPlain(this.param['value']);
   $('fieldset#taxonomy-term-data-fieldset legend').html(name);
   $('ul.treeview li input:hidden[class=term-id][value='+ this.tid +']')
     .siblings('div.form-item')
