@@ -314,7 +314,7 @@ function taxonomy_manager_confirm_delete($voc) {
   
   $form['delete'] = array(
     '#type' => 'fieldset',
-    '#attributes' => array('id' => 'del-confirm-form'),
+    '#attributes' => array('id' => 'del-confirm-form', 'style' => 'display:none;'),
     '#tree' => TRUE,
     '#title' => t('Confirmation'),
   );
@@ -371,7 +371,7 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   $form['add'] = array( 
     '#type' => 'fieldset', 
     '#tree' => TRUE,
-    '#attributes' => array('id' => 'add-form'),
+    '#attributes' => array('id' => 'add-form', 'style' => 'display:none;'),
     '#title' => t('Add new terms'),
     '#description' => $description,
   );
@@ -431,7 +431,7 @@ function taxonomy_manager_merge_form($voc) {
   $form['merge'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
-    '#attributes' => array('id' => 'merge-form'),
+    '#attributes' => array('id' => 'merge-form', 'style' => 'display:none;'),
     '#title' => t('Merging of terms'), 
     '#description' => $description,
   );
@@ -492,7 +492,7 @@ function taxonomy_manager_move_form($voc) {
   $form['move'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
-    '#attributes' => array('id' => 'move-form'),
+    '#attributes' => array('id' => 'move-form', 'style' => 'display:none;'),
     '#title' => t('Moving of terms'),
     '#description' => $description,
   );
@@ -554,7 +554,7 @@ function taxonomy_manager_export_form($voc) {
   $form['export'] = array( 
     '#type' => 'fieldset',
     '#tree' => TRUE,
-    '#attributes' => array('id' => 'export-form'),
+    '#attributes' => array('id' => 'export-form', 'style' => 'display:none;'),
     '#title' => t('CSV Export'),
     '#description' => $description,
   );
@@ -993,12 +993,15 @@ function taxonomy_manager_form_add_submit($form, &$form_state) {
     if (module_exists('i18ntaxonomy')) {
       if (i18ntaxonomy_vocabulary($form_state['values']['vid']) == I18N_TAXONOMY_TRANSLATE && $form_state['values']['taxonomy']['manager']['top']['language'] != "") {
         _i18ntaxonomy_term_set_lang($term['tid'], $form_state['values']['taxonomy']['manager']['top']['language']);
+        $updated_lang = TRUE;
       }
-      drupal_set_message(t("Saving terms to language @lang", array('@lang' => locale_language_name($form_state['values']['taxonomy']['manager']['top']['language']))));
     }
   }
-
   taxonomy_manager_update_voc($form_state['values']['vid'], $selected_tids);
+  
+  if (isset($updated_lang) && $updated_lang == TRUE) {
+    drupal_set_message(t("Saving terms to language @lang", array('@lang' => locale_language_name($form_state['values']['taxonomy']['manager']['top']['language']))));
+  }
   drupal_set_message("Terms added: ". check_plain(implode(', ', $terms)));
 }
 

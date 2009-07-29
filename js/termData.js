@@ -21,7 +21,7 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
       
       var tid = $('#edit-term-data-tid').val();
       if (tid) {
-        var termLink = $(":input[value="+ tid +"]").parent().find("a");
+        var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a");
         Drupal.activeTermSwapHighlight(termLink);
         var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
         var termdata = new Drupal.TermData(tid, url);
@@ -49,10 +49,10 @@ Drupal.attachTermData = function(ul) {
 */
 Drupal.activeTermSwapHighlight = function(link) {
   try {
-    $(active_term).parents('div.form-item:first').removeClass('highlightActiveTerm');
+    $(active_term).parent().removeClass('highlightActiveTerm');
   } catch(e) {}
   active_term = link;
-  $(active_term).parents('div.form-item:first').addClass('highlightActiveTerm');
+  $(active_term).parent().addClass('highlightActiveTerm');
 }
 
 /**

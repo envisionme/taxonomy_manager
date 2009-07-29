@@ -37,8 +37,8 @@ Drupal.attachHideForm = function(div, show_button, hide_button) {
     }
   });
   
-  if (hide) { 
-    $(div).hide();
+  if (!hide) { 
+    $(div).show();
   }
   
   $(show_button).click(function() {

@@ -166,7 +166,7 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function(tid) {
     Drupal.attachUpdateWeightTerms(ul);
     Drupal.attachTermData(ul);
     if (tid) {
-      var termLink = $(":input[value="+ tid +"]").parent().find("a");
+      var termLink = $("#"+ tree.treeId).find(":input[value="+ tid +"]").parent().find("a");
       Drupal.activeTermSwapHighlight(termLink);
     } 
   });
@@ -360,7 +360,7 @@ Drupal.TaxonomyManagerTree.prototype.getLanguage = function() {
  * attaches a throbber element to the taxonomy manager
  */
 Drupal.attachThrobber = function() {
-  var div = '#taxonomy-manager';
+  var div = $('#taxonomy-manager');
   var throbber = $('<img src="'+ Drupal.settings.taxonomy_manager['modulePath'] +'images/ajax-loader.gif" alt="" height="25">');
   throbber.appendTo("#taxonomy-manager-toolbar-throbber").hide();
   throbber.ajaxStart(function(){
