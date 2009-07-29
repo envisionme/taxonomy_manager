@@ -166,7 +166,7 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function(tid) {
     Drupal.attachUpdateWeightTerms(ul);
     Drupal.attachTermData(ul);
     if (tid) {
-      var termLink = $("#"+ tree.treeId).find(":input[value="+ tid +"]").parent().find("a");
+      var termLink = $("#"+ tree.treeId).find(":input[value="+ tid +"]").parent().find("a.term-data-link");
       Drupal.activeTermSwapHighlight(termLink);
     } 
   });

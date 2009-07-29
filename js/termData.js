@@ -21,7 +21,7 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
       
       var tid = $('#edit-term-data-tid').val();
       if (tid) {
-        var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a");
+        var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a.term-data-link");
         Drupal.activeTermSwapHighlight(termLink);
         var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
         var termdata = new Drupal.TermData(tid, url);

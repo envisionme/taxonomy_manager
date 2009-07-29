@@ -695,11 +695,11 @@ function _taxonomy_manager_tree_term_get_class($current_index, $tree, $expand) {
   }
   else if (_taxonomy_manager_tree_term_children_count($term->tid) > 0) {
     $class .= 'has-children ';
-    if ($next->depth == $term->depth) {
-      $class .= 'expandable';
+    if ($current_index == count($tree)) {
+      $class .= 'lastExpandable';
     }
     else {
-      $class .= 'lastExpandable';
+      $class .= 'expandable';
     }      
   }
   else if ((count($tree) == $current_index) || ($term->depth > $next->depth)) {

@@ -115,7 +115,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
     }
   }
  
-  $form['taxonomy']['manager']['top']['size'] = array('#value' => '<div id="taxonomy-manager-tree-size">'. theme("image", $module_path ."images/grippie.png", "decrease tree window size", NULL, array('class' => "div-grippie")) .'</div>');
+  $form['taxonomy']['manager']['top']['size'] = array('#value' => '<div id="taxonomy-manager-tree-size">'. theme("image", $module_path ."images/grippie.png", t("Resize tree"), t("Resize tree"), array('class' => "div-grippie")) .'</div>');
   
   $form['taxonomy']['manager']['tree'] = array( 
     '#type' => 'taxonomy_manager_tree', 
@@ -361,6 +361,10 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
       'show_button' => 'edit-add-show', 
       'hide_button' => 'edit-add-cancel', 
       'div' => 'add-form')), 'setting');
+    $attributes = array('id' => 'add-form', 'style' => 'display:none;');
+  }
+  else {
+    $attributes = array('id' => 'add-form');
   }
   
   $form = array();
@@ -371,7 +375,7 @@ function taxonomy_manager_add_form($voc, $hide_form = TRUE) {
   $form['add'] = array( 
     '#type' => 'fieldset', 
     '#tree' => TRUE,
-    '#attributes' => array('id' => 'add-form', 'style' => 'display:none;'),
+    '#attributes' => $attributes,
     '#title' => t('Add new terms'),
     '#description' => $description,
   );
