@@ -74,6 +74,14 @@ function taxonomy_manager_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'taxonomy_manager.admin.inc', 
   );
+  $items['admin/content/taxonomy_manager/double-tree'] = array(
+    'title' => 'Taxonomy Manager',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('taxonomy_manager_double_tree_form'),
+    'access arguments' => array('administer taxonomy'), 
+    'type' => MENU_CALLBACK,
+    'file' => 'taxonomy_manager.admin.inc', 
+  );
   
   $items['admin/settings/taxonomy_manager'] = array(
     'title' => 'Taxonomy Manager',
@@ -118,6 +126,9 @@ function taxonomy_manager_theme() {
     'taxonomy_manager_form' => array( 
       'arguments' => array('form'),
     ),
+    'taxonomy_manager_double_tree_form' => array( 
+      'arguments' => array('form'),
+    ),
     'no_submit_button' => array( 
       'arguments' => array('element'), 
     ),
@@ -157,10 +168,10 @@ function taxonomy_manager_help($path, $arg) {
 }
 
 /**
- * function gets called by the taxonomy_manager_tree form type (form_id +_operations)
+ * function gets called by the taxonomy_manager_tree form type ('taxonomy_manager_'. form_id .'_operations')
  * return an form array with values to show next to every term value
  */
-function taxonomy_manager_tree_operations($term) {
+function taxonomy_manager_taxonomy_manager_tree_operations($term) {
   $form = array();
   if (!variable_get('taxonomy_manager_disable_mouseover', 0)) {
     $module_path = drupal_get_path('module', 'taxonomy_manager') .'/';
@@ -177,13 +188,20 @@ function taxonomy_manager_tree_operations($term) {
 }
 
 /**
- * function gets called by taxonomy_manager_tree form type (form_id +_link)
+ * function gets called by taxonomy_manager_tree form type ('taxonomy_manager_'. form_id .'_link')
  * and returns an link, where to go, when a term gets clicked
  *
  * @param $vid vocabulary id
  */
-function taxonomy_manager_tree_link($term) {
+function taxonomy_manager_taxonomy_manager_tree_link($term) {
   return "admin/content/taxonomy_manager/termdata/". $term->vid ."/". $term->tid;
+}
+
+function taxonomy_manager_taxonomy2_manager_tree_operations($term) {
+  return taxonomy_manager_taxonomy_manager_tree_operations($term); 
+}
+function taxonomy_manager_taxonomy2_manager_tree_link($term) {
+  return taxonomy_manager_taxonomy_manager_tree_link($term); 
 }
 
 /**
@@ -293,7 +311,7 @@ function taxonomy_manager_term_page($str_tids = '', $depth = 0, $op = 'page') {
  * 
  * defining term operations:
  *   to add values (operations,..) to each term, add a function, which return a form array
- *   'tree_form_id'_operations
+ *   'taxonomy_manager_'. $tree_form_id .'_operations'
  * 
  * how to retrieve selected values:
  *   selected terms ids are available in validate / submit function in
@@ -340,13 +358,13 @@ function taxonomy_manager_tree_process_elements($element) {
   }
   
   if (!is_array($element['#operations'])) {
-    $opertions_callback = implode('_', $element['#parents']) .'_operations';
+    $opertions_callback = 'taxonomy_manager_'. implode('_', $element['#parents']) .'_operations';
     if (function_exists($opertions_callback)) {
       $element['#operations_callback'] = $opertions_callback;
     }
   }
   if (!isset($element['#link'])) {
-    $link_callback = implode('_', $element['#parents']) .'_link';
+    $link_callback = 'taxonomy_manager_'. implode('_', $element['#parents']) .'_link';
     if (function_exists($link_callback)) {
       $element['#link_callback'] = $link_callback;
     }
@@ -794,12 +812,12 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent, $tid = 
     $child_form['#siblings_page'] = 1;
   }
   
-  $opertions_callback = str_replace('-', '_', $tree_id) .'_operations';
+  $opertions_callback = 'taxonomy_manager_'. str_replace('-', '_', $tree_id) .'_operations';
   if (function_exists($opertions_callback)) {
     $child_form['#operations_callback'] = $opertions_callback;
   }
   
-  $link_callback = str_replace('-', '_', $tree_id) .'_link';
+  $link_callback = 'taxonomy_manager_'. str_replace('-', '_', $tree_id) .'_link';
   if (function_exists($link_callback)) {
     $child_form['#link_callback'] = $link_callback;
   }
@@ -841,12 +859,12 @@ function taxonomy_manager_tree_build_siblings_form($tree_id, $page, $prev_tid, $
     '#language' => $params['language'],
   );
   
-  $opertions_callback = str_replace('-', '_', $tree_id) .'_operations';
+  $opertions_callback = 'taxonomy_manager_'. str_replace('-', '_', $tree_id) .'_operations';
   if (function_exists($opertions_callback)) {
     $siblings_form['#operations_callback'] = $opertions_callback;
   }
   
-  $link_callback = str_replace('-', '_', $tree_id) .'_link';
+  $link_callback = 'taxonomy_manager_'. str_replace('-', '_', $tree_id) .'_link';
   if (function_exists($link_callback)) {
     $siblings_form['#link_callback'] = $link_callback;
   }

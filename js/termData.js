@@ -11,22 +11,27 @@ Drupal.behaviors.TaxonomyManagerTermData = function(context) {
   //use tree settings....
   var settings = Drupal.settings.taxonomytree || [];
   if (settings['id']) {
+    if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) {
+      $('#taxonomy-manager-toolbar').addClass('tm-termData-processed');
     
-    if (!(settings['id'] instanceof Array)) {
-      if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) {
-        $('#taxonomy-manager-toolbar').addClass('tm-termData-processed');
+      if (!(settings['id'] instanceof Array)) {
         var tree = $('#'+ settings['id']);
         Drupal.attachTermData(tree);
       }
-      
-      var tid = $('#edit-term-data-tid').val();
-      if (tid) {
-        var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a.term-data-link");
-        Drupal.activeTermSwapHighlight(termLink);
-        var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
-        var termdata = new Drupal.TermData(tid, url);
-        termdata.form();
+      else {
+        for (var i = 0; i < settings['id'].length; i++) {
+          var tree = $('#'+ settings['id'][i]);
+          Drupal.attachTermData(tree);
+        }
       }
+    }
+    var tid = $('#edit-term-data-tid').val();
+    if (tid) {
+      var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a.term-data-link");
+      Drupal.activeTermSwapHighlight(termLink);
+      var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
+      var termdata = new Drupal.TermData(tid, url);
+      termdata.form();
     }
   }
 }
@@ -102,6 +107,7 @@ Drupal.TermData.prototype.load = function() {
 Drupal.TermData.prototype.insertForm = function(data) { 
   $(this.div).html(data);
   this.form(); 
+  this.vid = $('#edit-term-data-vid').attr('value');
 }
 
 /**
@@ -118,7 +124,7 @@ Drupal.TermData.prototype.form = function() {
   } catch(e) {} //autocomplete or textarea js not added to page
   
   this.param['tid'] = this.tid;
-  this.param['vid'] = $('input#edit-term-data-vid').attr('value');
+  this.param['vid'] = this.vid;
   
   $(this.div).find('div.term-data-autocomplete-add > span').click(function() {
     termdata.param['attr_type'] = $(this).attr("class");
@@ -160,6 +166,9 @@ Drupal.TermData.prototype.form = function() {
     termdata.param['value'] = $('#edit-term-data-name').attr('value');
     termdata.updateTermName();
   });
+  $(this.div).find('#term-data-close span').click(function() {
+    termdata.div.children().remove();
+  });
 
 }
 
@@ -188,17 +197,24 @@ Drupal.TermData.prototype.send = function() {
  */
 Drupal.TermData.prototype.update = function() {
   var settings = Drupal.settings.taxonomytree || [];
-  var id, vid;
-  
   if (settings['id']) {
     if (!(settings['id'] instanceof Array)) {
-       id = settings['id'];
-       vid = settings['vid'];
+       if (this.vid == settings['vid']) {
+         this.updateTree(settings['id']);
+       }
+    }
+    else {
+      for (var i = 0; i < settings['id'].length; i++) {
+        if (this.vid == settings['vid'][i]) {
+          this.updateTree(settings['id'][i]);
+        }
+      }
     }
   }
-    
-  var tree = new Drupal.TaxonomyManagerTree(id, vid);
+}
 
+Drupal.TermData.prototype.updateTree = function(id) {
+  var tree = new Drupal.TaxonomyManagerTree(id, this.vid);
   if (this.param['attr_type'] == 'parent' || (this.param['attr_type'] == 'related' && this.param['op'] == 'add') || (this.param['attr_type'] == 'language' && this.param['op'] == 'update')) {
     tree.loadRootForm(this.tid);
   }

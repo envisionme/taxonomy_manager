@@ -11,17 +11,19 @@
   margin-left: 0; 
 }
 
+#taxonomy2-manager-tree-outer-div,
 #taxonomy-manager-tree-outer-div {
   height: 550px;	
   overflow: auto;
 }
 
+#taxonomy2-manager-tree-outer-div fieldset,
 #taxonomy-manager-tree-outer-div fieldset {
   margin: 0;
   padding: 0 5px;
 }
 
-#taxonomy-manager-tree-size {
+.taxonomy-manager-tree-size {
   padding: 0px;
   margin: 0px;
   /*height: 7px;*/
@@ -29,10 +31,11 @@
   display: inline;
 }
 
-#taxonomy-manager-tree-size img {
+.taxonomy-manager-tree-size img {
   cursor: pointer;
 }
 
+#taxonomy2-manager-tree-wrapper,
 #taxonomy-manager-tree-wrapper {
   margin-top: 0em;
 }
@@ -139,6 +142,7 @@
   font-weight: bold;
 }
 
+#edit-taxonomy2-manager-top-language-wrapper,
 #edit-taxonomy-manager-top-language-wrapper {
   padding: 0;
   padding-right: 0.5em;
@@ -146,11 +150,12 @@
   text-align: right;
   display: inline;
 }
+#edit-taxonomy2-manager-top-language-wrapper label,
 #edit-taxonomy-manager-top-language-wrapper label {
   display: inline;
 }
 
-#taxonomy-manager-tree-top {
+.taxonomy-manager-tree-top {
   text-align: right;
 }
 
@@ -174,8 +179,9 @@ input.taxonomy-manager-buttons {
   background-color: #f2f2f2;
   background-repeat: no-repeat;
   background-position:3px;
-  padding-left: 25px;
+  padding-left: 26px;
   padding-bottom: 3px;
+  padding-right: 3px;
   height: 28px;
 }
 
@@ -219,6 +225,14 @@ input.save {
   background-image: url(../images/document-save.png);
 }
 
+input.double-tree {
+  background-image: url(../images/double-tree.png);
+}
+
+input.double-tree-disable {
+  background-image: url(../images/double-tree-disable.png);
+}
+
 
 /**
  * Taxonomy Manager Search
@@ -248,6 +262,43 @@ input.save {
  * Term Data Form
  */
 
+.term-data-overlay {
+  position: absolute;
+  left: 280px; 
+  top: 270px; 
+  width: 400px; 
+}
+
+.term-data-overlay fieldset {
+  border-width: 6px;
+  border-style: ridge;
+}
+
+.term-data-overlay legend {
+  font-weight: bold;  
+}
+
+#term-data-close {
+  padding: 0;
+  margin: 0;
+  text-align: right; 
+  line-height: 100%;
+  
+}
+
+#term-data-close span {
+  text-decoration: none;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-image: url(../images/dialog-cancel-small.png);
+  cursor: pointer;
+}
+
+#term-data-close span:hover {
+  background-image: url(../images/dialog-cancel-small-hover.png);
+}
+
 .term-data-autocomplete-add span {
   text-decoration: none;
   width: 22px;
@@ -272,6 +323,10 @@ input.save {
 .taxonomy-term-data-operations span:hover {
   text-decoration: none;
   background-image: url(../images/list-remove-hover.png);
+}
+
+#taxonomy-term-data #edit-term-data-name-wrapper {
+  margin-top: 0; 
 }
 
 #taxonomy-term-data .resizable-textarea {
@@ -327,7 +382,7 @@ input.save {
 }
 
 #taxonomy-term-data .messages {
-  margin: 0;
+  margin: 2px 0 0;
 }
 
 #edit-term-data-save {

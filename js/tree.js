@@ -103,6 +103,7 @@ Drupal.TaxonomyManagerTree.prototype.swapClasses = function(node, c1, c2) {
 Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
   var tree = this;
   if ($(li).is(".has-children") || update == true) {
+    $(li).removeClass("has-children");
     var parentId = Drupal.getTermId(li);
     if (!(Drupal.settings.childForm['url'] instanceof Array)) {
       url = Drupal.settings.childForm['url'];
@@ -133,7 +134,6 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
       if (term_data_settings['url']) {
         Drupal.attachTermData(ul);
       }
-      $(li).removeClass("has-children");
     });     
   }
 }
@@ -339,7 +339,7 @@ Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
  */
 Drupal.TaxonomyManagerTree.prototype.attachLanguageSelector = function() {
   var tree = this;
-  var selector = $('#edit-taxonomy-manager-top-language');
+  var selector = $(tree.div).parent().siblings("div.taxonomy-manager-tree-top").find("select.language-selector");
   $(selector).not(".selector-processed").change(function() {
     tree.language = $(this).val();
     tree.loadRootForm();
@@ -377,24 +377,26 @@ Drupal.attachThrobber = function() {
 * makes the div resizeable
 */
 Drupal.attachResizeableTreeDiv = function() {
-  var div = $('#taxonomy-manager-tree-outer-div'), staticOffset = null;
+  $('img.div-grippie').each(function() {
+    var staticOffset = null;
+    var div = $(this).parents("fieldset").parent(); 
+    $(this).mousedown(startDrag);  
+  
+    function startDrag(e) {
+      staticOffset = div.width() - e.pageX;
+      div.css('opacity', 0.5);
+      $(document).mousemove(performDrag).mouseup(endDrag);
+      return false;
+    }
  
-  $('#taxonomy-manager-tree-size .div-grippie').mousedown(startDrag);
+    function performDrag(e) {
+      div.width(Math.max(200, staticOffset + e.pageX) + 'px');
+      return false;
+    }
  
-  function startDrag(e) {
-    staticOffset = div.width() - e.pageX;
-    div.css('opacity', 0.5);
-    $(document).mousemove(performDrag).mouseup(endDrag);
-    return false;
-  }
- 
-  function performDrag(e) {
-    div.width(Math.max(200, staticOffset + e.pageX) + 'px');
-    return false;
-  }
- 
-  function endDrag(e) {
-    $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
-    div.css('opacity', 1);
-  }
+    function endDrag(e) {
+      $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+      div.css('opacity', 1);
+    }
+  });
 }

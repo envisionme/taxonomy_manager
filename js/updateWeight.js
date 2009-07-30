@@ -64,8 +64,8 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     var url = Drupal.settings.updateWeight['url'];
   
     var termLineClass = 'div.term-line';
-    var termUpClass = 'div.term-up';
-    var termDownClass = 'div.term-down';
+    var termUpClass = 'img.term-up';
+    var termDownClass = 'img.term-down';
   
     if (parent && currentIndex) {
       parent = $(parent).slice(currentIndex);
@@ -83,7 +83,6 @@ Drupal.attachUpdateWeightTerms = function(parent, currentIndex) {
     $(termLineClass).mouseout(function() {
       $(this).find('div.term-operations').hide(); 
     });
-  
   
     $(termUpClass).click(function() {
       var upTerm = $(this).parents("li").eq(0);
