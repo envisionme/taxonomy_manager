@@ -7,7 +7,6 @@
 Drupal.behaviors.TaxonomyManagerTree = function(context) {
   var settings = Drupal.settings.taxonomytree || [];
   var id, vid;
-  
   if (settings['id']) {
     if (!(settings['id'] instanceof Array)) {
        id = settings['id'];
@@ -17,11 +16,18 @@ Drupal.behaviors.TaxonomyManagerTree = function(context) {
        }
     }
     else {
+      var trees = new Array(settings['id'].length);
       for (var i = 0; i < settings['id'].length; i++) {
         id = settings['id'][i];
         vid = settings['vid'][i];
         if (!$('#'+ id + '.tm-processed').size()) {
-          new Drupal.TaxonomyManagerTree(id, vid); 
+          trees[i] = new Drupal.TaxonomyManagerTree(id, vid); 
+        }
+      }
+      if (trees.length == 2) {
+        var doubleTreeSettings = Drupal.settings.DoubleTree || [];
+        if (doubleTreeSettings['enabled']) {
+          new Drupal.DoubleTree(trees[0], trees[1]);
         }
       }
     }
@@ -100,10 +106,13 @@ Drupal.TaxonomyManagerTree.prototype.swapClasses = function(node, c1, c2) {
  * loads child terms and appends html to list
  * adds treeview, weighting etc. js to inserted child list
  */
-Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
+Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update, callback) {
   var tree = this;
   if ($(li).is(".has-children") || update == true) {
     $(li).removeClass("has-children");
+    if (update) {
+      $(li).children("ul").remove(); 
+    }
     var parentId = Drupal.getTermId(li);
     if (!(Drupal.settings.childForm['url'] instanceof Array)) {
       url = Drupal.settings.childForm['url'];
@@ -133,6 +142,10 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update) {
       var term_data_settings = Drupal.settings.termData || [];
       if (term_data_settings['url']) {
         Drupal.attachTermData(ul);
+      }
+      
+      if (typeof(callback) == "function") {
+        callback(li);
       }
     });     
   }
@@ -313,19 +326,25 @@ Drupal.TaxonomyManagerTree.prototype.attachSelectAllChildren = function(parent, 
  * (un-)selects nested checkboxes
  */
 Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
+  var tree = this;
   if ($(span).hasClass("select-all-children")) {
-    /*var li = $(span).parents("li:first");
+    var li = $(span).parents("li:first");
     if ($(li).hasClass("has-children")) {
-      this.toggleTree(li);
-      this.loadChildForm(li);
-    }*/
-    $(span).removeClass("select-all-children").addClass("unselect-all-children");
-    $(span).attr("title", Drupal.t("Unselect all children"));
-    $(span).parents("li:first").find('ul:first').each(function() {
-      var first_element = $(this).find('.term-line:first');
-      $(first_element).parent().siblings("li").find('div.term-line:first :checkbox').attr('checked', true);
-      $(first_element).find(' :checkbox').attr('checked', true);
-    });
+      this.loadChildForm(li, true, function(li) {
+         var this_span = $(li).find('span.select-all-children');
+         tree.SelectAllChildrenToggle(this_span);
+         return;
+      });
+    }
+    else {
+      $(span).removeClass("select-all-children").addClass("unselect-all-children");
+      $(span).attr("title", Drupal.t("Unselect all children"));
+      $(span).parents("li:first").find('ul:first').each(function() {
+        var first_element = $(this).find('.term-line:first');
+        $(first_element).parent().siblings("li").find('div.term-line:first :checkbox').attr('checked', true);
+        $(first_element).find(' :checkbox').attr('checked', true);
+      });
+    }
   }
   else {
     $(span).removeClass("unselect-all-children").addClass("select-all-children");
@@ -355,6 +374,24 @@ Drupal.TaxonomyManagerTree.prototype.getLanguage = function() {
   return lang;
 }
 
+/**
+ * return array of selected terms
+ */
+Drupal.TaxonomyManagerTree.prototype.getSelectedTerms = function() {
+  var terms = new Array();
+  $(this.div).find("input[type=checkbox][checked]").each(function() {
+    var term = $(this).parents("li").eq(0);
+    terms.push(term);
+  });
+  return terms;
+}
+
+/**
+ * returns li node for a given term id, if it exists in the tree
+ */
+Drupal.TaxonomyManagerTree.prototype.getLi = function(termId) {
+  return $(this.div).find("input:hidden[class=term-id][value="+ termId +"]").parent().parent();
+}
 
 /**
  * attaches a throbber element to the taxonomy manager

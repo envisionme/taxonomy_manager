@@ -2,11 +2,13 @@
 /**
  * Taxonomy Manager Tree formating
  */
- 
+
+#taxonomy-manager-double-tree-form fieldset,
 #taxonomy-manager-form fieldset {
   margin: 0.5em 0;
 }
 
+#taxonomy-manager-double-tree-form .left,
 #taxonomy-manager-form .left {
   margin-left: 0; 
 }
@@ -15,6 +17,7 @@
 #taxonomy-manager-tree-outer-div {
   height: 550px;	
   overflow: auto;
+  width: 46%;
 }
 
 #taxonomy2-manager-tree-outer-div fieldset,
@@ -159,6 +162,25 @@
   text-align: right;
 }
 
+#taxonomy-manager-double-tree-operations {
+  float: left;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-top: 120px;
+  display: inline;
+}
+
+.taxonomy-manager-double-tree-operations-buttons input {
+  padding: 0;
+  margin: 0; 
+}
+
+#double-tree-msg {
+  /*border: 2px solid #000000;
+  padding: 6px;
+  background: #FFFFE0; */
+}
+
 /**
  * Taxonomy Manger Toolbar
  */
@@ -166,10 +188,10 @@
   float: right;
   margin: 0px;
   padding: 0px;
+  height: 25px;
 }
 
 #taxonomy-manager-toolbar-buttons {
-  height: 33px;
   float:left;
 }
 

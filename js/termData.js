@@ -106,8 +106,8 @@ Drupal.TermData.prototype.load = function() {
  */
 Drupal.TermData.prototype.insertForm = function(data) { 
   $(this.div).html(data);
-  this.form(); 
   this.vid = $('#edit-term-data-vid').attr('value');
+  this.form(); 
 }
 
 /**
