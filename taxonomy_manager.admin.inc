@@ -380,15 +380,24 @@ function taxonomy_manager_double_tree_form(&$form_state, $vid1, $vid2, $tid = 0,
     '#prefix' => '<div class="taxonomy-manager-double-tree-operations-buttons">',
     '#suffix' => '</div>',
   );
-  $form['double-tree']['operations']['add_translation'] = array(
-    '#type' => 'image_button',
-    '#value' => 'translation',
-    '#attributes' => array('title' => t('Add Translation')),
-    '#src' => $module_path ."images/connect.png",
-    //'#executes_submit_callback' => FALSE,
-    '#prefix' => '<div class="taxonomy-manager-double-tree-operations-buttons">',
-    '#suffix' => '</div>',
-  );
+  //switch operations
+  if ($vid1 != $vid2) {
+    $form['double-tree']['operations']['move_right']['#value'] = 'Switch right';
+    $form['double-tree']['operations']['move_right']['#attributes']['title'] = t('Switch selected terms and its children to the right voc');
+    $form['double-tree']['operations']['move_left']['#value'] = 'Switch left';
+    $form['double-tree']['operations']['move_left']['#attributes']['title'] = t('Switch selected terms and its children to the left voc');
+  }
+  else if (isset($language)) {
+    $form['double-tree']['operations']['add_translation'] = array(
+      '#type' => 'image_button',
+      '#value' => 'translation',
+      '#attributes' => array('title' => t('Add Translation')),
+      '#src' => $module_path ."images/connect.png",
+      //'#executes_submit_callback' => FALSE,
+      '#prefix' => '<div class="taxonomy-manager-double-tree-operations-buttons">',
+      '#suffix' => '</div>',
+    );
+  }
 
   return $form;
 }
@@ -1355,7 +1364,7 @@ function taxonomy_manager_check_language($vid, $selected_tids, $parents) {
       $lang = _taxonomy_manager_term_get_lang($term['tid']);
       if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
         foreach ($parents as $parent) {
-          if (_taxonomy_manager_term_get_lang($parent->tid) != $lang) {
+          if (_taxonomy_manager_term_get_lang($parent['tid']) != $lang) {
             return FALSE; 
           }
         }
@@ -1741,12 +1750,7 @@ function taxonomy_manager_term_data_edit() {
             if ($param['edit-term-data-translations-op-lang'] != "") {
               _i18ntaxonomy_term_set_lang($translation_term, $param['edit-term-data-translations-op-lang']);
             }
-            $trid = db_result(db_query("SELECT trid FROM {term_data} WHERE tid = %d", $tid));
-            if ($trid == 0) {
-              $trid = ((int)db_result(db_query('SELECT max(trid) FROM {term_data}'))) + 1;
-              db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d', $trid, $tid);
-            }
-            db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d', $trid, $translation_term);
+            taxonomy_manager_add_translation($tid, $translation_term);
             $msg = t("Successfully added translation");
           }
           else if ($op == "delete") {
@@ -1775,7 +1779,9 @@ function taxonomy_manager_term_data_edit() {
   exit;
 }
 
-
+/**
+ * AJAX Callback for Double Tree operations
+ */
 function taxonomy_manager_double_tree_edit() {
   $params = $_POST;
   $op = $params['op'];
@@ -1786,16 +1792,19 @@ function taxonomy_manager_double_tree_edit() {
   if ($op == "move") {
     taxonomy_manager_double_tree_edit_move($params, &$msg, &$is_error_msg);
   }
+  else if ($op == "translation") {
+    taxonomy_manager_doube_tree_edit_translate($params, &$msg, &$is_error_msg); 
+  }
+  else if ($op == "switch") {
+    taxonomy_manager_double_tree_edit_switch($params, &$msg, &$is_error_msg); 
+  }
     
-  
   if ($msg == "") {
-    $msg = t("Invalid operation");
+    $msg = t("Invalid operation.");
     $is_error_msg = TRUE; 
   }
-  
   $msg_type = ($is_error_msg) ? "error" : "status";
   
-  //           tranlate: different language, not translated yet
   drupal_json(array('data' => $msg, 'type' => $msg_type));
 }
 
@@ -1817,8 +1826,12 @@ function taxonomy_manager_double_tree_edit_move($params, &$msg, &$is_error_msg) 
   }
 
   if (is_array($selected_parents) && count($selected_parents)) {
-    if(!taxonomy_manager_check_language($vid, $selected_terms, $selected_parents)) {
-      $msg = t("Terms must be of the same language");
+    $p_array = array();
+    foreach ($selected_parents as $parent) {
+      $p_array[$parent]['tid'] = $parent;
+    }
+    if(!taxonomy_manager_check_language($vid, $selected_terms, $p_array)) {
+      $msg = t("Terms must be of the same language.");
       $is_error_msg = TRUE;
       return;
     }
@@ -1863,6 +1876,129 @@ function taxonomy_manager_double_tree_edit_move($params, &$msg, &$is_error_msg) 
   $is_error_msg = FALSE;
 }
 
+
+function taxonomy_manager_doube_tree_edit_translate($params, &$msg, &$is_error_msg) {
+  $term1 = taxonomy_get_term(array_pop($params['selected_terms']));
+  $term2 = taxonomy_get_term(array_pop($params['selected_parents']));
+  $vid = $term1->vid;
+  
+  if (module_exists('i18ntaxonomy')) {
+    if (i18ntaxonomy_vocabulary($vid) == I18N_TAXONOMY_TRANSLATE) {
+      if ($term1->language == $term2->language) {
+        $msg = t("Selected terms are of the same language.");
+        $is_error_msg = TRUE; 
+      }
+      else {
+        $translations = i18ntaxonomy_term_get_translations(array('tid' => $term1->tid), FALSE);
+        foreach ($translations as $translation) {
+          if ($translation->language == $term2->language) {
+            $msg = t('Translation for this language already exists.');
+            $is_error_msg = TRUE;
+            break; 
+          }
+        }
+        $translations = i18ntaxonomy_term_get_translations(array('tid' => $term2->tid), FALSE);
+        foreach ($translations as $translation) {
+          if ($translation->language == $term1->language) {
+            $msg = t('Translation for this language already exists.');
+            $is_error_msg = TRUE;
+            break; 
+          }
+        }
+      }
+    }
+    else {
+      $msg = t("This is not a multilingual vocabulary.");
+      $is_error_msg = TRUE;
+    }
+  }
+  else {
+    $msg = t("Module i18ntaxonomy not enabled.");
+    $is_error_msg = TRUE;
+  }
+  
+  if (!$is_error_msg) {
+    taxonomy_manager_add_translation($term1->tid, $term2->tid);
+    $msg = t("Translation for %term2 - %term1 added.", array('%term2' => $term2->name, '%term1' => $term1->name)); 
+  }
+}
+
+function taxonomy_manager_double_tree_edit_switch($params, &$msg, &$is_error_msg) {
+  $selected_terms = $params['selected_terms'];
+  $selected_parents = $params['selected_parents'];
+  $voc1 = taxonomy_vocabulary_load($params['voc1']);
+  $voc2 = taxonomy_vocabulary_load($params['voc2']);
+  
+  
+  taxonomy_manager_switch($selected_terms, $voc1->vid, $voc2->vid, $selected_parents);
+  
+  $selected_terms_names = array();
+  foreach ($selected_terms as $tid) {
+    $term = taxonomy_get_term($tid);
+    $selected_terms_names[] = $term->name;
+  }
+  $selected_parent_names = array();
+  if (count($selected_parents)) {
+    foreach ($selected_parents as $parent) {
+      $term = taxonomy_get_term($parent);
+      $selected_parent_names[] = $term->name;
+      $term_parents_array[$term->tid] = $term->tid;  
+    }
+  }
+  $term_names = implode(', ', $selected_terms_names);
+  if (count($selected_parents) == 0) {
+    $msg = t("Terms %terms moved to vocabulary %voc.", array('%terms' => $term_names, '%voc' => $voc2->name));
+  }
+  else {
+    $msg = t("Terms %terms moved to vocabulary %voc under parents %parents.", array('%terms' => $term_names, '%voc' => $voc2->name, '%parents' => implode(', ', $selected_parent_names)));
+  }
+  $is_error_msg = FALSE;
+}
+
+/**
+ * adds translation between two terms
+ */
+function taxonomy_manager_add_translation($tid1, $tid2) {
+  $trid1 = db_result(db_query("SELECT trid FROM {term_data} WHERE tid = %d", $tid1));
+  $trid2 = db_result(db_query("SELECT trid FROM {term_data} WHERE tid = %d", $tid2));
+  if ($trid1 == 0 && $trid2 == 0) {
+    $trid = ((int)db_result(db_query('SELECT max(trid) FROM {term_data}'))) + 1;
+    db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d OR tid = %d', $trid, $tid1, $tid2);
+  }
+  else if ($trid1 != 0 && $trid2 == 0) {
+    db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d', $trid1, $tid2);
+  }
+  else if ($trid2 != 0 && $trid1 == 0) {
+    db_query('UPDATE {term_data} SET trid = %d WHERE tid = %d', $trid2, $tid1);
+  }
+  else {
+    $trid = max($trid1, $trid2); 
+    db_query('UPDATE {term_data} SET trid = %d WHERE trid = %d OR trid = %d', $trid, $trid1, $trid2);
+  }
+}
+
+/**
+ * Changes vocabulary of given terms and its children
+ * conflicts might be possible with multi-parent terms!
+ */
+function taxonomy_manager_switch($tids, $from_voc, $to_voc, $parents = array()) {
+  foreach ($tids as $tid) {
+   $children = taxonomy_get_tree($from_voc, $tid);
+   $place_holder = array();
+   $terms_to_switch = array();
+   foreach ($children as $child) {
+     $placeholder[] = '%d';
+     $terms_to_switch[] = $child->tid; 
+   }
+   $placeholder[] = '%d';
+   $terms_to_switch[] = $tid;
+   db_query("UPDATE {term_data} SET vid = %d WHERE tid IN (". implode(', ', $placeholder) .")", array_merge(array($to_voc), $terms_to_switch));
+   if (!count($parents)) {
+     $parents[0] = 0;
+   }
+   taxonomy_manager_move($parents, array($tid));
+  }
+}
 /**
  * checks if voc has terms
  *

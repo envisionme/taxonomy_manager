@@ -145,7 +145,7 @@ Drupal.TaxonomyManagerTree.prototype.loadChildForm = function(li, update, callba
       }
       
       if (typeof(callback) == "function") {
-        callback(li);
+        callback(li, tree);
       }
     });     
   }
@@ -330,10 +330,12 @@ Drupal.TaxonomyManagerTree.prototype.SelectAllChildrenToggle = function(span) {
   if ($(span).hasClass("select-all-children")) {
     var li = $(span).parents("li:first");
     if ($(li).hasClass("has-children")) {
-      this.loadChildForm(li, true, function(li) {
-         var this_span = $(li).find('span.select-all-children');
-         tree.SelectAllChildrenToggle(this_span);
-         return;
+      this.loadChildForm(li, true, function(li, tree1) {
+        tree.swapClasses(li, "expandable", "collapsable");
+        tree.swapClasses(li, "lastExpandable", "lastCollapsable");
+        var this_span = $(li).find('span.select-all-children:first');
+        tree.SelectAllChildrenToggle(this_span);
+        return;
       });
     }
     else {
