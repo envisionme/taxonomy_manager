@@ -298,6 +298,7 @@ input.double-tree-disable {
 
 .term-data-overlay legend {
   font-weight: bold;  
+  cursor: move;
 }
 
 #term-data-close {

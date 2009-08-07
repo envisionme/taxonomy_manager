@@ -8,6 +8,7 @@ Drupal.DoubleTree = function(tree1, tree2) {
   this.selected_terms = new Array();
   this.selected_parents = new Array();
   this.direction = "left-to-right";
+  this.updateWholeTree = false;
   this.url = Drupal.settings.DoubleTree['url'];
   this.param = new Object(); 
   
@@ -20,6 +21,10 @@ Drupal.DoubleTree = function(tree1, tree2) {
 Drupal.DoubleTree.prototype.attachOperations = function() {
   var doubleTree = this;
   $('#taxonomy-manager-double-tree-operations :input').click(function() {
+    doubleTree.selected_terms = new Array();
+    doubleTree.selected_parents = new Array();
+    doubleTree.param = new Object();
+    
     var button_value = $(this).val();
     doubleTree.param['op'] = 'move';
     
@@ -46,6 +51,7 @@ Drupal.DoubleTree.prototype.attachOperations = function() {
     }
     else if (button_value == "Switch right" || button_value == "Switch left") {
       doubleTree.param['op'] = 'switch';
+      doubleTree.updateWholeTree = true;
     }
     
     if (doubleTree.selected_terms.length == 0) {
@@ -71,7 +77,11 @@ Drupal.DoubleTree.prototype.send = function() {
   $(this.selected_terms).each(function() {
     var tid = Drupal.getTermId(this);
     doubleTree.param['selected_terms['+ tid +']'] = tid;
-    doubleTree.param['selected_terms_parent['+ tid +']'] = Drupal.getParentId(this);
+    var parentID = Drupal.getParentId(this);
+    if (typeof(parentID) == "undefined") {
+      doubleTree.updateWholeTree = true;
+    }
+    doubleTree.param['selected_terms_parent['+ tid +']'] = parentID;
   });
   
   $.ajax({
@@ -93,7 +103,7 @@ Drupal.DoubleTree.prototype.send = function() {
  */
 Drupal.DoubleTree.prototype.updateTrees = function() {
   var doubleTree = this;
-  if (this.selected_parents.length == 0 || this.param['op'] == "switch") {
+  if (this.selected_parents.length == 0 || this.updateWholeTree) {
     //selected terms might be moved to root level, so update whole tree
     var term_to_expand = Drupal.getTermId(this.selected_terms.shift());
     doubleTree.leftTree.loadRootForm(term_to_expand);
@@ -106,14 +116,14 @@ Drupal.DoubleTree.prototype.updateTrees = function() {
       var parent_tid = Drupal.getParentId(this);
       parents_to_update[parent_tid] = parent_tid;
     });
+    $(this.selected_parents).each(function() {
+      var tid = Drupal.getTermId(this);
+      parents_to_update[tid] = tid
+    });
     for (var i in parents_to_update) {
       var tid = parents_to_update[i];
       doubleTree.updateTree(tid);
     }
-    $(this.selected_parents).each(function() {
-      var tid = Drupal.getTermId(this);
-      doubleTree.updateTree(tid);
-    });
   }
 }
 
@@ -161,6 +171,7 @@ Drupal.DoubleTree.prototype.updateLi = function(li, tree) {
   else if (!$(li).hasClass("collapsable") && !$(li).hasClass("lastCollapsable")) {
     $(li).prepend('<div class="hitArea" />');
     $(li).addClass("collapsable");
+    $(li).removeClass("last");
     $(li).children("div.hitArea").click(function() {
       tree.toggleTree(li);
       tree.loadChildForm(li);

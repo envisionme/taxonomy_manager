@@ -747,7 +747,7 @@ function taxonomy_manager_double_tree_settings_form($voc) {
     '#tree' => TRUE,
     '#attributes' => array('id' => 'double-tree-settings-form', 'style' => 'display:none;'),
     '#title' => t('Double Tree Settings'),
-    '#description' => t('Specify settings for second tree. Choose the same vocabulary if you want to move terms in the hierarchy or if you want to add new translations within a multilingual vocabulary. Choose a different vocabulary if you want to switch terms between different vocabularies.'),
+    '#description' => t('Specify settings for second tree. Choose the same vocabulary if you want to move terms in the hierarchy or if you want to add new translations within a multilingual vocabulary. Choose a different vocabulary if you want to switch terms among these vocabularies.'),
   );
   
   $options = array();
@@ -984,7 +984,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       $id = $value;
     }
     $form['data'][$id][] = array(
-      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid .'/'. $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
+      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid ."/". $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
       '#row-class' => 'taxonomy-term-data-name',
       '#row-id' => 'term-'. $id, 
     );
@@ -1039,7 +1039,7 @@ function _taxonomy_manager_form_term_data_translations($term, $translations, $he
       $extra_info = taxonomy_manager_tree_term_extra_info($value);
     }
     $form['data'][$id][] = array(
-      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid .'/'. $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
+      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid ."/". $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
       '#row-class' => 'taxonomy-term-data-name',
       '#row-id' => 'term-'. $id, 
     );
@@ -1929,7 +1929,6 @@ function taxonomy_manager_double_tree_edit_switch($params, &$msg, &$is_error_msg
   $voc1 = taxonomy_vocabulary_load($params['voc1']);
   $voc2 = taxonomy_vocabulary_load($params['voc2']);
   
-  
   taxonomy_manager_switch($selected_terms, $voc1->vid, $voc2->vid, $selected_parents);
   
   $selected_terms_names = array();
@@ -1988,15 +1987,28 @@ function taxonomy_manager_switch($tids, $from_voc, $to_voc, $parents = array()) 
    $terms_to_switch = array();
    foreach ($children as $child) {
      $placeholder[] = '%d';
-     $terms_to_switch[] = $child->tid; 
+     $terms_to_switch[] = $child->tid;
    }
    $placeholder[] = '%d';
    $terms_to_switch[] = $tid;
    db_query("UPDATE {term_data} SET vid = %d WHERE tid IN (". implode(', ', $placeholder) .")", array_merge(array($to_voc), $terms_to_switch));
+   
+   //delete references to parents from the old voc
+   foreach ($children as $child) {
+     $term_parents = taxonomy_get_parents($child->tid);
+     foreach ($term_parents as $term_parent) {
+       if ($term_parent->vid != $to_voc) {
+         db_query("DELETE FROM {term_hierarchy} WHERE tid = %d AND parent = %d", $child->tid, $term_parent->tid);
+       } 
+     }
+   }
+   
+   //set parent of the selected term
    if (!count($parents)) {
      $parents[0] = 0;
    }
    taxonomy_manager_move($parents, array($tid));
+   taxonomy_manager_update_voc($to_voc, $parents);
   }
 }
 /**
@@ -2398,13 +2410,15 @@ function taxonomy_manager_export_get_tree($vid, $selected_tid, $depth, $options)
  */
 function taxonomy_manager_update_voc($vid, $parents = array()) {
   $voc = (array) taxonomy_vocabulary_load($vid);
-  $current_hierarchy = count($parents);
-  if ($current_hierarchy > 2) {
-     $current_hierarchy = 2;
-  }
-  if ($current_hierarchy > $voc['hierarchy']) {
-    $voc['hierarchy'] = $current_hierarchy;
-    taxonomy_save_vocabulary($voc);
+  if ($voc->vid == $vid) {
+    $current_hierarchy = count($parents);
+    if ($current_hierarchy > 2) {
+       $current_hierarchy = 2;
+    }
+    if ($current_hierarchy > $voc['hierarchy']) {
+      $voc['hierarchy'] = $current_hierarchy;
+      taxonomy_save_vocabulary($voc);
+    }
   }
 }
 

@@ -7,43 +7,28 @@
 //global var that holds the current term link object
 var active_term = new Object();
 
-Drupal.behaviors.TaxonomyManagerTermData = function(context) {
-  //use tree settings....
-  var settings = Drupal.settings.taxonomytree || [];
-  if (settings['id']) {
-    if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) {
-      $('#taxonomy-manager-toolbar').addClass('tm-termData-processed');
-    
-      if (!(settings['id'] instanceof Array)) {
-        var tree = $('#'+ settings['id']);
-        Drupal.attachTermData(tree);
-      }
-      else {
-        for (var i = 0; i < settings['id'].length; i++) {
-          var tree = $('#'+ settings['id'][i]);
-          Drupal.attachTermData(tree);
-        }
-      }
-    }
-    var tid = $('#edit-term-data-tid').val();
-    if (tid) {
-      var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a.term-data-link");
-      Drupal.activeTermSwapHighlight(termLink);
-      var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
-      var termdata = new Drupal.TermData(tid, url);
-      termdata.form();
-    }
+
+Drupal.attachTermData = function(ul, tree) {
+  Drupal.attachTermDataLinks(ul, tree);
+  
+  var tid = $('#edit-term-data-tid').val();
+  if (tid) {
+    var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a.term-data-link");
+    Drupal.activeTermSwapHighlight(termLink);
+    var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
+    var termdata = new Drupal.TermData(tid, url, tree.getLi(tid), tree);
+    termdata.form();
   }
 }
 
 /**
  * adds click events to the term links in the tree structure
  */
-Drupal.attachTermData = function(ul) {
+Drupal.attachTermDataLinks = function(ul, tree) {
   $(ul).find('a.term-data-link').click(function() {
     Drupal.activeTermSwapHighlight(this);
     var li = $(this).parents("li");
-    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li);
+    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li, tree);
     termdata.load();
     return false;
   });
@@ -63,11 +48,11 @@ Drupal.activeTermSwapHighlight = function(link) {
 /**
  * attaches click events to next siblings
  */
-Drupal.attachTermDataToSiblings = function(all, currentIndex) {
+Drupal.attachTermDataToSiblings = function(all, currentIndex, tree) {
   var nextSiblings = $(all).slice(currentIndex);
   $(nextSiblings).find('a.term-data-link').click(function() {
     var li = $(this).parents("li");
-    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li);
+    var termdata = new Drupal.TermData(Drupal.getTermId(li), this.href +'/true', li, tree);
     termdata.load();
     return false;
   });
@@ -76,12 +61,13 @@ Drupal.attachTermDataToSiblings = function(all, currentIndex) {
 /**
  * TermData Object
  */
-Drupal.TermData = function(tid, href, li) {
+Drupal.TermData = function(tid, href, li, tree) {
   this.href = href;
   this.tid = tid;
   this.li = li;
-  this.form_build_id = $(' :input[name="form_build_id"]').val();
-  this.form_id = $(' :input[name="form_id"]').val();
+  this.tree = tree
+  this.form_build_id = this.tree.form_build_id;
+  this.form_id = this.tree.form_id;
   this.div = $('#taxonomy-term-data');
 }
 
@@ -106,7 +92,7 @@ Drupal.TermData.prototype.load = function() {
  */
 Drupal.TermData.prototype.insertForm = function(data) { 
   $(this.div).html(data);
-  this.vid = $('#edit-term-data-vid').attr('value');
+  this.vid = this.tree.vocId;
   this.form(); 
 }
 
@@ -166,10 +152,48 @@ Drupal.TermData.prototype.form = function() {
     termdata.param['value'] = $('#edit-term-data-name').attr('value');
     termdata.updateTermName();
   });
+  
   $(this.div).find('#term-data-close span').click(function() {
-    termdata.div.children().remove();
+    termdata.div.children().hide();
   });
-
+  
+  $(this.div).find('a').click(function() {
+    var url = this.href;
+    var tid = url.split("/").pop();
+    var li = termdata.tree.getLi(tid);
+    termdata.tree.loadRootForm(tid);
+    termdata_new = new Drupal.TermData(tid, this.href +'/true', li, termdata.tree);
+    termdata_new.load();
+    return false;
+  });
+  
+  $(this.div).find("legend").each(function() {
+    var staticOffsetX, staticOffsetY = null;
+    var left, right = 0;
+    var div = termdata.div; 
+    var pos = $(div).position();
+    $(this).mousedown(startDrag);  
+  
+    function startDrag(e) {
+      if (staticOffsetX == null && staticOffsetY == null) {
+        staticOffsetX = e.pageX;
+        staticOffsetY = e.pageY;
+      }
+      $(document).mousemove(performDrag).mouseup(endDrag);
+      return false;
+    }
+ 
+    function performDrag(e) {
+      left = e.pageX - staticOffsetX;
+      top = e.pageY - staticOffsetY;
+      $(div).css({position: "absolute", "left": pos.left + left +"px", "top": pos.top + top +"px"});
+      return false;
+    }
+ 
+    function endDrag(e) {
+      $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+    }
+  });
 }
 
 /**
@@ -199,22 +223,19 @@ Drupal.TermData.prototype.update = function() {
   var settings = Drupal.settings.taxonomytree || [];
   if (settings['id']) {
     if (!(settings['id'] instanceof Array)) {
-       if (this.vid == settings['vid']) {
-         this.updateTree(settings['id']);
-       }
+      this.updateTree(this.tree);
     }
     else {
       for (var i = 0; i < settings['id'].length; i++) {
         if (this.vid == settings['vid'][i]) {
-          this.updateTree(settings['id'][i]);
+          this.updateTree(new Drupal.TaxonomyManagerTree(id, this.vid));
         }
       }
     }
   }
 }
 
-Drupal.TermData.prototype.updateTree = function(id) {
-  var tree = new Drupal.TaxonomyManagerTree(id, this.vid);
+Drupal.TermData.prototype.updateTree = function(tree) {
   if (this.param['attr_type'] == 'parent' || (this.param['attr_type'] == 'related' && this.param['op'] == 'add') || (this.param['attr_type'] == 'language' && this.param['op'] == 'update')) {
     tree.loadRootForm(this.tid);
   }
