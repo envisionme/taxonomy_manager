@@ -400,6 +400,11 @@ function taxonomy_manager_tree_process_elements($element) {
   if (count($element['#default_value']) && !$element['#expand_all']) {
     $terms_to_expand = taxonomy_manager_tree_get_terms_to_expand($tree, $element['#default_value'], $element['#multiple']);
   }
+
+  if (!empty($element['#language'])) {
+    $element['#elements']['language'] = array('#type' => 'hidden', '#value' => $element['#language'], '#attributes' => array('class' => 'tree-lang'));
+    _taxonomy_manager_tree_element_set_params($element['#parents'], $element['#elements']);
+  }
   
   taxonomy_manager_tree_build_form($index = 0, $tree, $element['#elements'], $element, $element['#parents'], $element['#siblings_page'], $element['#default_value'], $element['#multiple'], $terms_to_expand);
     
@@ -806,12 +811,19 @@ function taxonomy_manager_tree_build_child_form($tree_id, $vid, $parent, $tid = 
   
   $form_state = array('submitted' => FALSE);
   
+  if (isset($tid) && $tid != 0) {
+    $language = _taxonomy_manager_term_get_lang($tid); 
+  }
+  else {
+    $language = $params['language'];
+  }
+
   $child_form = array( 
     '#type' => 'taxonomy_manager_tree', 
     '#vid' => $vid, 
     '#parent' => $parent, 
     '#pager' => TRUE,
-    '#language' => $params['language'],
+    '#language' => $language,
     '#term_to_expand' => $tid,
   );
   if (!$root_level) { //TODO ?
@@ -974,6 +986,15 @@ function _taxonomy_manager_tree_get_selected_terms($form_values) {
   return $tids;
 }
 
+/**
+ * returns language of a term (multilingual voc), if i18ntaxonomy enabled
+ */
+function _taxonomy_manager_term_get_lang($tid) {
+  if (module_exists('i18ntaxonomy')) {
+    return db_result(db_query("SELECT language FROM {term_data} WHERE tid = %d", $tid)); 
+  }
+  return "";
+}
 
 /**
  * theme function for root element
@@ -1042,6 +1063,9 @@ function theme_taxonomy_manager_tree_elements($element) {
   }
   
   $output .= "</ul>";
+  if (isset($element['language'])) {
+    $output .= drupal_render($element['language']);
+  }
   return $output;
 }
 

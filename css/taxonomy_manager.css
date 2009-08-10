@@ -3,6 +3,10 @@
  * Taxonomy Manager Tree formating
  */
 
+#taxonomy-manager-form {
+  line-height: 100%;
+}
+
 #taxonomy-manager-double-tree-form fieldset,
 #taxonomy-manager-form fieldset {
   margin: 0.5em 0;
@@ -284,21 +288,36 @@ input.double-tree-disable {
  * Term Data Form
  */
 
+#taxonomy-term-data {
+  line-height: 120%;
+}
+
+#taxonomy-term-data fieldset {
+  padding: 0.8em;
+}
+
 .term-data-overlay {
   position: absolute;
   left: 280px; 
   top: 270px; 
   width: 400px; 
+  z-index: 100;
 }
 
 .term-data-overlay fieldset {
   border-width: 6px;
   border-style: ridge;
+  background: #FFFFFF;
 }
 
 .term-data-overlay legend {
   font-weight: bold;  
   cursor: move;
+  background-image: url(../images/move-small.png);
+  background-repeat:no-repeat;
+  background-position: 1px 4px;
+  padding-left: 15px;
+  line-height: 150%;
 }
 
 #term-data-close {
@@ -358,7 +377,7 @@ input.double-tree-disable {
 
 #taxonomy-term-data fieldset {
   margin-top: 0;
-  padding-top: 0.5em;
+  padding-top: 0;
 }
 .taxonomy-term-data-operations {
   cursor: pointer;
@@ -404,8 +423,9 @@ input.double-tree-disable {
   padding-right: 0.5em;
 }
 
+#taxonomy-term-data .message, 
 #taxonomy-term-data .messages {
-  margin: 2px 0 0;
+  margin: 1px 0;
 }
 
 #edit-term-data-save {

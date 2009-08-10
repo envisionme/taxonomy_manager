@@ -7,17 +7,34 @@
 //global var that holds the current term link object
 var active_term = new Object();
 
+//holds tree objects, useful in double tree interface, when both trees needs to be updated
+var trees = new Object();
 
+/** 
+ * attaches term data form, used after 'Saves changes' ahah submit
+ */
+Drupal.behaviors.TaxonomyManagerTermData = function(context) {
+  if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) { 
+    var vid = $('#edit-term-data-vid').val();
+    for (var id in trees) {
+      var tree = trees[id];
+      if (tree.vocId == vid) {
+        Drupal.attachTermDataForm(tree);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * attaches Term Data functionality, called by tree.js
+ */
 Drupal.attachTermData = function(ul, tree) {
+  trees[tree.treeId] = tree;
   Drupal.attachTermDataLinks(ul, tree);
   
-  var tid = $('#edit-term-data-tid').val();
-  if (tid) {
-    var termLink = $('#taxonomy-manager-tree').find(":input[value="+ tid +"]").parent().find("a.term-data-link");
-    Drupal.activeTermSwapHighlight(termLink);
-    var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
-    var termdata = new Drupal.TermData(tid, url, tree.getLi(tid), tree);
-    termdata.form();
+  if (!$('#taxonomy-manager-toolbar' + '.tm-termData-processed').size()) { 	 
+	  Drupal.attachTermDataForm(tree);
   }
 }
 
@@ -59,6 +76,22 @@ Drupal.attachTermDataToSiblings = function(all, currentIndex, tree) {
 }
 
 /**
+ * adds click events to term data form, which is already open, when page gets loaded
+ */
+Drupal.attachTermDataForm = function(tree) {
+  $('#taxonomy-manager-toolbar').addClass('tm-termData-processed');
+  var tid = $('#edit-term-data-tid').val();
+  if (tid) {
+    var li = tree.getLi(tid);
+    var termLink = $(li).children("div.term-line").find("a.term-data-link");
+    Drupal.activeTermSwapHighlight(termLink);
+    var url = Drupal.settings.termData['term_url'] +'/'+ tid +'/true';
+    var termdata = new Drupal.TermData(tid, url, li, tree);
+    termdata.form();
+  }  
+}
+
+/**
  * TermData Object
  */
 Drupal.TermData = function(tid, href, li, tree) {
@@ -66,8 +99,9 @@ Drupal.TermData = function(tid, href, li, tree) {
   this.tid = tid;
   this.li = li;
   this.tree = tree
-  this.form_build_id = this.tree.form_build_id;
-  this.form_id = this.tree.form_id;
+  this.form_build_id = tree.form_build_id;
+  this.form_id = tree.form_id;
+  this.vid = tree.vocId;
   this.div = $('#taxonomy-term-data');
 }
 
@@ -92,7 +126,6 @@ Drupal.TermData.prototype.load = function() {
  */
 Drupal.TermData.prototype.insertForm = function(data) { 
   $(this.div).html(data);
-  this.vid = this.tree.vocId;
   this.form(); 
 }
 
@@ -149,6 +182,7 @@ Drupal.TermData.prototype.form = function() {
   });
   
   $(this.div).find('#edit-term-data-save').click(function() {
+    $('#taxonomy-manager-toolbar').removeClass("tm-termData-processed");
     termdata.param['value'] = $('#edit-term-data-name').attr('value');
     termdata.updateTermName();
   });
@@ -220,17 +254,10 @@ Drupal.TermData.prototype.send = function() {
  * updates term data form and if necessary tree structure
  */
 Drupal.TermData.prototype.update = function() {
-  var settings = Drupal.settings.taxonomytree || [];
-  if (settings['id']) {
-    if (!(settings['id'] instanceof Array)) {
-      this.updateTree(this.tree);
-    }
-    else {
-      for (var i = 0; i < settings['id'].length; i++) {
-        if (this.vid == settings['vid'][i]) {
-          this.updateTree(new Drupal.TaxonomyManagerTree(id, this.vid));
-        }
-      }
+  for (var id in trees) {
+    var tree = trees[id];
+    if (tree.vocId == this.vid) {
+       this.updateTree(tree); 
     }
   }
 }

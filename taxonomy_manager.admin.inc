@@ -1379,16 +1379,6 @@ function taxonomy_manager_check_language($vid, $selected_tids, $parents) {
   return TRUE;
 }
 
-/**
- * returns language of a term (multilingual voc), if i18ntaxonomy enabled
- */
-function _taxonomy_manager_term_get_lang($tid) {
-  if (module_exists('i18ntaxonomy')) {
-    return db_result(db_query("SELECT language FROM {term_data} WHERE tid = %d", $tid)); 
-  }
-  return "";
-}
-
 
 /**
  * Submit handler for moving terms
@@ -1631,6 +1621,10 @@ function taxonomy_manager_term_data_edit() {
     }
     else if ($param['edit-term-data-translations-op-lang'] == $param['edit-term-data-language']) {
       $msg = t('Invalid language selection');
+      $is_error_msg = TRUE; 
+    }
+    else if (!count($typed_terms) && count($translation_terms) && empty($param['edit-term-data-translations-op-lang'])) {
+      $msg = t('Missing language for new term');
       $is_error_msg = TRUE; 
     }
     else {

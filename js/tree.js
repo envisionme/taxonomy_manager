@@ -56,7 +56,6 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   this.treeId = id;
   this.vocId = vid; 
 
-  $(this.div).addClass("tm-processed");
   this.attachTreeview(this.ul);
   this.attachSiblingsForm(this.ul);
   this.attachSelectAllChildren(this.ul);
@@ -67,6 +66,8 @@ Drupal.TaxonomyManagerTree = function(id, vid) {
   if (term_data_settings['url']) {
     Drupal.attachTermData(this.ul, this);
   }
+  
+  $(this.div).addClass("tm-processed");
 }
 
 /**
@@ -187,7 +188,12 @@ Drupal.TaxonomyManagerTree.prototype.loadRootForm = function(tid) {
     if (tid) {
       var termLink = $("#"+ tree.treeId).find(":input[value="+ tid +"]").parent().find("a.term-data-link");
       Drupal.activeTermSwapHighlight(termLink);
-    } 
+    }
+
+    var lang = $('#edit-'+ tree.treeId +'-language').val();
+    if (lang != "" && lang != tree.langauge) {
+      $(tree.div).parent().siblings("div.taxonomy-manager-tree-top").find("select.language-selector option[value="+ lang +"]").attr("selected", "selected");
+    }
   });
 }
 
