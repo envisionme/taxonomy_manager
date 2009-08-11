@@ -62,8 +62,7 @@ function taxonomy_manager_form(&$form_state, $vid, $tid = 0, $filter = NULL) {
   drupal_set_title(t("Taxonomy Manager - %voc_name", array("%voc_name" => $voc->name)));
   
   if (!is_numeric($voc->vid)) {
-    $text = t('No vocabulary with this ID available!. ');
-    $text .= t('Check this !link_list for available vocabularies or !link_create a new one', array('!link_list' => l('list', 'admin/content/taxonomy_manager'), '!link_create' => l('create', 'admin/content/taxonomy/add/vocabulary')));
+    $text = t('No vocabulary with this ID available! Check this <a href="!list">list</a> for available vocabularies or <a href="!create">create</a> a new one', array('!list' => url('admin/content/taxonomy_manager'), '!create' => url('admin/content/taxonomy/add/vocabulary')));
     $form['text'] = array( 
       '#value' => $text,
     );
