@@ -714,8 +714,7 @@ function _taxonomy_manager_tree_term_get_class($current_index, $tree, $expand) {
   }
     
   if ($children) {
-    $next = $tree[++$current_index];
-    if ($next->depth == $term->depth) {
+    if (isset($next->depth) && $next->depth == $term->depth) {
       $class .= ($expand) ? 'collapsable' : 'expandable';
     }
     else {
