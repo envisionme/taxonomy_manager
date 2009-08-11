@@ -4,7 +4,7 @@
  */
 
 #taxonomy-manager-form {
-  line-height: 100%;
+  line-height: 120%;
 }
 
 #taxonomy-manager-double-tree-form fieldset,
@@ -288,10 +288,6 @@ input.double-tree-disable {
  * Term Data Form
  */
 
-#taxonomy-term-data {
-  line-height: 120%;
-}
-
 #taxonomy-term-data fieldset {
   padding: 0.8em;
 }
@@ -302,12 +298,12 @@ input.double-tree-disable {
   top: 270px; 
   width: 400px; 
   z-index: 100;
+  background: #FFFFFF;
 }
 
 .term-data-overlay fieldset {
   border-width: 6px;
   border-style: ridge;
-  background: #FFFFFF;
 }
 
 .term-data-overlay legend {
@@ -316,7 +312,7 @@ input.double-tree-disable {
   background-image: url(../images/move-small.png);
   background-repeat:no-repeat;
   background-position: 1px 4px;
-  padding-left: 15px;
+  padding-left: 16px;
   line-height: 150%;
 }
 

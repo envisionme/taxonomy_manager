@@ -2116,10 +2116,6 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
   $voc = taxonomy_vocabulary_load($vid);
   $merging_terms_parents = array();
   
-  if ($voc->hierarchy == 2 && $new_inserted && $options['collect_parents']) {
-    db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $main_term);
-  }
-  
   //TODO: add hook, so that other modules can consider changes
   foreach ($merging_terms as $merge_term) {
     if ($merge_term != $main_term) {
@@ -2133,14 +2129,10 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
         }
       }
     
-      if ($voc->hierarchy == 1) {  //sinlge hierarchy
-        $parents = taxonomy_get_parents($merge_term);
-        $parent = array_shift($parents);
-        $merging_terms_parents[$parent->tid] = $parent->tid;
-      }
       if ($options['collect_parents']) {
         $parents = taxonomy_get_parents($merge_term);
         foreach ($parents as $parent_tid => $parent_term) {
+           $merging_terms_parents[$parent_tid] = $parent_tid;
           if (!db_result(db_query("SELECT COUNT(*) FROM {term_hierarchy} WHERE tid = %d AND parent = %d", $main_term, $parent_tid))) {
              db_query("INSERT INTO {term_hierarchy} (tid, parent) VALUES (%d, %d)", $main_term, $parent_tid);
           }
@@ -2185,11 +2177,10 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
       taxonomy_manager_delete_terms(array($merge_term));
     }
   }
-
-  if ($voc->hierarchy == 1 && count($merging_terms_parents) == 1 && $new_inserted) {
-    db_query("UPDATE {term_hierarchy} SET parent = %d WHERE tid = %d", array_shift($merging_terms_parents), $main_term);
+  taxonomy_manager_update_voc($vid, $merging_terms_parents);
+  if ($options['collect_parents'] && (db_result(db_query("SELECT COUNT(*) FROM {term_hierarchy} WHERE tid = %d", $main_term)) > 1)) {
+    db_query("DELETE FROM {term_hierarchy} WHERE parent = 0 AND tid = %d", $main_term);
   }
-  
   taxonomy_manager_merge_history_update($main_term, $merging_terms);
 }
 

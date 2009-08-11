@@ -203,7 +203,7 @@ Drupal.TermData.prototype.form = function() {
   
   $(this.div).find("legend").each(function() {
     var staticOffsetX, staticOffsetY = null;
-    var left, right = 0;
+    var left, top = 0;
     var div = termdata.div; 
     var pos = $(div).position();
     $(this).mousedown(startDrag);  
