@@ -1783,13 +1783,13 @@ function taxonomy_manager_double_tree_edit() {
   $is_error_msg = FALSE;
   
   if ($op == "move") {
-    taxonomy_manager_double_tree_edit_move($params, &$msg, &$is_error_msg);
+    taxonomy_manager_double_tree_edit_move($params, $msg, $is_error_msg);
   }
   else if ($op == "translation") {
-    taxonomy_manager_doube_tree_edit_translate($params, &$msg, &$is_error_msg); 
+    taxonomy_manager_doube_tree_edit_translate($params, $msg, $is_error_msg); 
   }
   else if ($op == "switch") {
-    taxonomy_manager_double_tree_edit_switch($params, &$msg, &$is_error_msg); 
+    taxonomy_manager_double_tree_edit_switch($params, $msg, $is_error_msg); 
   }
     
   if ($msg == "") {
