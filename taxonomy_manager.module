@@ -560,7 +560,7 @@ function _taxonomy_manager_tree_get_first_path($tid, &$tree, &$terms_to_expand) 
  * helper function to check whether a given term is a root term
  */
 function taxonomy_manager_term_is_root($tid) {
-  if (db_affected_rows(db_query("SELECT tid FROM term_hierarchy WHERE tid = %d AND parent = 0", $tid)) == 1) {
+  if (db_affected_rows(db_query("SELECT tid FROM {term_hierarchy} WHERE tid = %d AND parent = 0", $tid)) == 1) {
     return TRUE;
   }
   return FALSE; 
