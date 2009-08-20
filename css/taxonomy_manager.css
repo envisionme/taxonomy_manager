@@ -92,7 +92,6 @@
 }
 
 .term-has-more-siblings {
-  dispaly: inline;
   height: 38px;
   cursor: pointer;
 }
