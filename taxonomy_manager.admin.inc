@@ -1541,7 +1541,7 @@ function taxonomy_manager_settings() {
   $form['taxonomy_manager_disable_merge_redirect'] = array(
     '#type' => 'checkbox',
     '#title' => t('Disable redirect of the taxonomy term page to merged terms '),
-    '#default_value' => variable_get('taxonomy_manager_disable_merge_redirect', 0),
+    '#default_value' => variable_get('taxonomy_manager_disable_merge_redirect', TRUE),
     '#description' => t('When using the merging feature, the selected terms get merged into one term. All selected terms will be deleted afterwards. Normally the Taxonomy Manager redirects calls to taxonomy/term/$tid of the deleted terms (through merging) to the resulting merged term. This feature might conflict with other modules (e.g. Taxonomy Breadcrumb, Panels), which implement hook_menu_alter to change the taxonomy_manager_term_page callback. Disable this feature if it conflicts with other modules or if you do not need it. Changing this setting requires a (menu) cache flush to become active.'),
   );
   $form['taxonomy_manager_pager_tree_page_size'] = array(
