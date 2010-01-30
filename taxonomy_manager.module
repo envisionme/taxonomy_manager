@@ -1001,7 +1001,7 @@ function _taxonomy_manager_term_get_lang($tid) {
  * @param $element
  * @return html output
  */
-function theme_taxonomy_manager_tree(&$element) {
+function theme_taxonomy_manager_tree($element) {
   $tree = theme('taxonomy_manager_tree_elements', $element['#elements']);
   if ((!$element['#parent'] && !$element['#siblings_page']) || $element['#render_whole_tree']) {
     $output = '<div id="'. $element['#id'] .'">';
