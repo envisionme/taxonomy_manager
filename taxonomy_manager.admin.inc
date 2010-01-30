@@ -1577,7 +1577,7 @@ function taxonomy_manager_term_data_edit() {
   $attr_type = $param['attr_type'];
   $op = $param['op'];
   
-  if ($op == "Save changes") {
+  if ($op == t("Save changes")) {
     db_query("UPDATE {term_data} SET name = '%s' WHERE tid = %d", $param['term_data']['name'], $tid);
     db_query("UPDATE {term_data} SET description = '%s' WHERE tid = %d", $param['term_data']['description'], $tid);
   }
