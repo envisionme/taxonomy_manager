@@ -1202,7 +1202,7 @@ function taxonomy_manager_form_add_submit($form, &$form_state) {
   if (isset($updated_lang) && $updated_lang == TRUE) {
     drupal_set_message(t("Saving terms to language @lang", array('@lang' => locale_language_name($form_state['values']['taxonomy']['manager']['top']['language']))));
   }
-  drupal_set_message("Terms added: ". check_plain(implode(', ', $terms)));
+  drupal_set_message(t("Terms added: %terms", array('%terms' => implode(', ', $terms))));
 }
 
 
@@ -1279,7 +1279,7 @@ function taxonomy_manager_term_confirm_delete_submit($form, &$form_state) {
   else {
     $form_state['redirect'] = 'admin/content/taxonomy_manager/voc/'. $form_state['values']['vid'];
   }
-  drupal_set_message("Selected terms deleted"); 
+  drupal_set_message(t("Selected terms deleted")); 
   return;
 }
 
@@ -1562,7 +1562,7 @@ function taxonomy_manager_settings() {
 function taxonomy_manager_term_data_edit() {
   $param = $_POST;
 
-  $msg = "Changes successfully saved";
+  $msg = t("Changes successfully saved");
   $is_error_msg = FALSE;
   
   $tid = $param['tid'];
