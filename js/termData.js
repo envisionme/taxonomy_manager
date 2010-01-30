@@ -191,7 +191,7 @@ Drupal.TermData.prototype.form = function() {
     termdata.div.children().hide();
   });
   
-  $(this.div).find('a').click(function() {
+  $(this.div).find('a.taxonomy-term-data-name-link').click(function() {
     var url = this.href;
     var tid = url.split("/").pop();
     var li = termdata.tree.getLi(tid);

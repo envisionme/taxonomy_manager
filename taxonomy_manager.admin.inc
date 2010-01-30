@@ -983,7 +983,7 @@ function _taxonomy_manager_form_term_data_lists($term, $values, $header_type, $a
       $id = $value;
     }
     $form['data'][$id][] = array(
-      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid ."/". $id, array('attributes' => array('title' => $extra_info))) : check_plain($name),
+      '#value' => (isset($vid) && $vid > 0) ? l($name, 'admin/content/taxonomy_manager/termdata/'. $vid ."/". $id, array('attributes' => array('title' => $extra_info, 'class' => 'taxonomy-term-data-name-link'))) : check_plain($name),
       '#row-class' => 'taxonomy-term-data-name',
       '#row-id' => 'term-'. $id, 
     );
