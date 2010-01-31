@@ -1973,35 +1973,38 @@ function taxonomy_manager_add_translation($tid1, $tid2) {
  * Changes vocabulary of given terms and its children
  * conflicts might be possible with multi-parent terms!
  */
-function taxonomy_manager_switch($tids, $from_voc, $to_voc, $parents = array()) {
+function taxonomy_manager_switch($tids, $from_voc, $to_voc, $parents = array()) {  
   foreach ($tids as $tid) {
-   $children = taxonomy_get_tree($from_voc, $tid);
-   $place_holder = array();
-   $terms_to_switch = array();
-   foreach ($children as $child) {
-     $placeholder[] = '%d';
-     $terms_to_switch[] = $child->tid;
-   }
-   $placeholder[] = '%d';
-   $terms_to_switch[] = $tid;
-   db_query("UPDATE {term_data} SET vid = %d WHERE tid IN (". implode(', ', $placeholder) .")", array_merge(array($to_voc), $terms_to_switch));
+    //hook to inform modules about the changes
+    module_invoke_all('taxonomy_manager_term', 'switch', $tid, $from_voc, $to_voc);
+    
+    $children = taxonomy_get_tree($from_voc, $tid);
+    $place_holder = array();
+    $terms_to_switch = array();
+    foreach ($children as $child) {
+      $placeholder[] = '%d';
+      $terms_to_switch[] = $child->tid;
+    }
+    $placeholder[] = '%d';
+    $terms_to_switch[] = $tid;
+    db_query("UPDATE {term_data} SET vid = %d WHERE tid IN (". implode(', ', $placeholder) .")", array_merge(array($to_voc), $terms_to_switch));
    
-   //delete references to parents from the old voc
-   foreach ($children as $child) {
-     $term_parents = taxonomy_get_parents($child->tid);
-     foreach ($term_parents as $term_parent) {
-       if ($term_parent->vid != $to_voc) {
-         db_query("DELETE FROM {term_hierarchy} WHERE tid = %d AND parent = %d", $child->tid, $term_parent->tid);
-       } 
-     }
-   }
+    //delete references to parents from the old voc
+    foreach ($children as $child) {
+      $term_parents = taxonomy_get_parents($child->tid);
+      foreach ($term_parents as $term_parent) {
+        if ($term_parent->vid != $to_voc) {
+          db_query("DELETE FROM {term_hierarchy} WHERE tid = %d AND parent = %d", $child->tid, $term_parent->tid);
+        } 
+      }
+    }
    
-   //set parent of the selected term
-   if (!count($parents)) {
-     $parents[0] = 0;
-   }
-   taxonomy_manager_move($parents, array($tid));
-   taxonomy_manager_update_voc($to_voc, $parents);
+    //set parent of the selected term
+    if (!count($parents)) {
+      $parents[0] = 0;
+    }
+    taxonomy_manager_move($parents, array($tid));
+    taxonomy_manager_update_voc($to_voc, $parents);
   }
 }
 /**
@@ -2115,9 +2118,12 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
   $voc = taxonomy_vocabulary_load($vid);
   $merging_terms_parents = array();
   
-  //TODO: add hook, so that other modules can consider changes
   foreach ($merging_terms as $merge_term) {
     if ($merge_term != $main_term) {
+      
+      //hook, to inform other modules about the changes
+      module_invoke_all('taxonomy_manager_term', 'merge', $main_term, $merge_term);
+      
       //update node-relations
       $sql = db_query("SELECT * FROM {term_node} WHERE tid = %d", $merge_term);
       while ($obj = db_fetch_object($sql)) {
