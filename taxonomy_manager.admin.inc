@@ -1139,7 +1139,8 @@ function taxonomy_manager_form_submit($form, &$form_state) {
         $parents[] = check_plain($parent->name);
       }
       $parent_text = count($parents) ? implode(' | ', $parents) ." › " : "";
-      $matched_text_list[] = $parent_text ."". l($matched_term->name, $url_prefix .'/'. $matched_term->tid, array('attributes' => array('title' => taxonomy_manager_tree_term_extra_info($matched_term)))) ." (". $matched_term->tid .")";
+      $term = taxonomy_get_term($t['tid']);
+      $matched_text_list[] = $parent_text ."". l($matched_term->name, $url_prefix .'/'. $matched_term->tid, array('attributes' => array('title' => taxonomy_manager_tree_term_extra_info($matched_term)))) ." (". $matched_term->tid . (!empty($matched_term->language) ? '-'. check_plain($matched_term->language) : '') . ")";
     }
     drupal_set_message(t("Your search string matches !count terms:", array('!count' => count($terms))) ."". theme('item_list', $matched_text_list));
     $form_state['rebuild'] = TRUE;
@@ -1508,8 +1509,9 @@ function _taxonomy_manager_check_duplicates($vid, $autocomplete_value, &$msg) {
    $terms = taxonomy_manager_autocomplete_tags_get_tids($match, $vid, FALSE);
    if (count($terms) > 1) {
      $tids = array();
-     foreach ($terms as $term) {
-       $tids[] = $term['tid'];
+     foreach ($terms as $t) {
+       $term = taxonomy_get_term($t['tid']);
+       $tids[] = $term->tid . (!empty($term->language) ? '-'. check_plain($term->language) : '');
      }
      $msg .= check_plain($match) .": ". implode(", ", $tids);
      return TRUE;
