@@ -2127,8 +2127,8 @@ function taxonomy_manager_merge($main_term, $merging_terms, $options = array(), 
       //update node-relations
       $sql = db_query("SELECT * FROM {term_node} WHERE tid = %d", $merge_term);
       while ($obj = db_fetch_object($sql)) {
-        db_query("DELETE FROM {term_node} WHERE tid = %d AND nid = %d", $obj->tid, $obj->nid);
-        if (!db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE tid = %d AND nid = %d", $main_term, $obj->nid))) {
+        db_query("DELETE FROM {term_node} WHERE tid = %d AND vid = %d", $obj->tid, $obj->vid);
+        if (!db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE tid = %d AND vid = %d", $main_term, $obj->vid))) {
           $obj->tid = $main_term;
           drupal_write_record('term_node', $obj);
         }
