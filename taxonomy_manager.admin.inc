@@ -562,6 +562,7 @@ function taxonomy_manager_merge_form($voc) {
   $form['merge']['main_term'] = array(
     '#type' => 'textfield',
     '#title' => t('Resulting merged term'),
+    '#description' => t("Enter a unique term name or a term id with 'term-id:[tid]'"),
     '#required' => FALSE,
     '#autocomplete_path' => 'taxonomy_manager/autocomplete/'. $voc->vid,
   );
@@ -620,14 +621,10 @@ function taxonomy_manager_move_form($voc) {
     '#description' => $description,
   );
   
-  if ($voc->hierarchy == 2) {
-    $auto_description .= t("Separate parent terms with a comma. ");
-  }
-  
   $form['move']['parents'] = array(
     '#type' => 'textfield',
     '#title' => t('Parent term(s)'),
-    '#description' => $auto_description,
+    '#description' => t("Enter a unique term name or a term id with 'term-id:[tid]'. Separate multiple parent terms with commas."),
     '#required' => FALSE,
     '#autocomplete_path' => 'taxonomy_manager/autocomplete/'. $voc->vid,
   );
@@ -1298,7 +1295,7 @@ function taxonomy_manager_form_move_validate($form, &$form_state) {
     $form_state['rebuild'] = TRUE;
   }
   else if (_taxonomy_manager_check_duplicates($form_state['values']['vid'], $form_state['values']['move']['parents'], $error_msg)) {
-    form_set_error('move', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").");
+    form_set_error('move', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name or the term id with 'term-id:[tid]'") ." (". $error_msg .").");
     $form_state['rebuild'] = TRUE;
   }
   
@@ -1451,7 +1448,7 @@ function taxonomy_manager_form_merge_validate($form, &$form_state) {
     $form_state['rebuild'] = TRUE;
   }
   else if (_taxonomy_manager_check_duplicates($form_state['values']['vid'], $form_state['values']['merge']['main_term'], $error_msg)) {
-    form_set_error('merge', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").");
+    form_set_error('merge', t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name or the term id with 'term-id:[tid]'") ." (". $error_msg .").");
         $form_state['rebuild'] = TRUE;
   }
   else if ($form_state['values']['merge']['options']['collect_parents']) {
@@ -1591,7 +1588,7 @@ function taxonomy_manager_term_data_edit() {
     //check for unique names
     $error_msg = "";
     if (_taxonomy_manager_check_duplicates($vid, $values, $error_msg)) {
-      $msg = t("Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name") ." (". $error_msg .").";
+      $msg = t("Warning: Your input matches with multiple terms, because of duplicated term names. Please enter a unique term name or the term id with 'term-id:[tid]'") ." (". $error_msg .").";
       $is_error_msg = TRUE; 
     }
     if(!taxonomy_manager_check_language($vid, array($tid), $typed_terms)) {
@@ -2221,10 +2218,12 @@ function taxonomy_manager_merge_history_update($main_tid, $merged_tids) {
 /**
  * helper function for getting out of term ids from autocomplete fields
  * non-exsiting terms get inserted autmatically
- * (part of taxonomy_node_save)
+ * the input gets parsed for term names, optional a term id can be directly passed with prefixing the input with 'term-id:'
  *
  * @param $typed_input input string of form field
  * @param $vid vocabulary id
+ * @param $insert_new TRUE if non-existing terms should be inserted
+ * @param $lang define the language (optional)
  * @return array of term ids
  */
 function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert_new = TRUE, $lang = NULL) {
@@ -2237,28 +2236,35 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert
   foreach ($typed_terms as $typed_term) {
     $typed_term = str_replace('""', '"', preg_replace('/^"(.*)"$/', '\1', $typed_term));
     $typed_term = trim($typed_term);
-    if ($typed_term == "") { 
-      continue; 
-    }
-
-    $possibilities = taxonomy_get_term_by_name($typed_term);
-    $typed_term_tid = NULL; // tid match if any.
-    foreach ($possibilities as $possibility) {
-      if ($possibility->vid == $vid && !($lang && $lang != $possibility->language)) {
-        $typed_term_tid = $possibility->tid;
-        $tids[$typed_term_tid]['tid'] = $typed_term_tid;
+    if ($typed_term != "") { 
+      if (substr($typed_term, 0, 8) == "term-id:") {
+        $id = substr($typed_term, 8);
+        $term = taxonomy_get_term($id);
+        if ($term->vid == $vid) {
+          $tids[$term->tid]['tid'] = $term->tid;
+        }
       }
-    }
+      else {
+        $possibilities = taxonomy_get_term_by_name($typed_term);
+        $typed_term_tid = NULL; // tid match if any.
+        foreach ($possibilities as $possibility) {
+          if ($possibility->vid == $vid && !($lang && $lang != $possibility->language)) {
+            $typed_term_tid = $possibility->tid;
+            $tids[$typed_term_tid]['tid'] = $typed_term_tid;
+          }
+        }
 
-    if (!$typed_term_tid && $insert_new) {
-      $edit = array('vid' => $vid, 'name' => $typed_term);
-      $status = taxonomy_save_term($edit);
-      if (module_exists('i18ntaxonomy') && $lang != "") {
-        _i18ntaxonomy_term_set_lang($edit['tid'], $lang);
+        if (!$typed_term_tid && $insert_new) {
+          $edit = array('vid' => $vid, 'name' => $typed_term);
+          $status = taxonomy_save_term($edit);
+          if (module_exists('i18ntaxonomy') && $lang != "") {
+            _i18ntaxonomy_term_set_lang($edit['tid'], $lang);
+          }
+          $typed_term_tid = $edit['tid'];
+          $tids[$typed_term_tid]['tid'] = $typed_term_tid;
+          $tids[$typed_term_tid]['new'] = TRUE;
+        }
       }
-      $typed_term_tid = $edit['tid'];
-      $tids[$typed_term_tid]['tid'] = $typed_term_tid;
-      $tids[$typed_term_tid]['new'] = TRUE;
     }
   }
   return $tids;
