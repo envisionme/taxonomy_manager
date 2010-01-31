@@ -1622,7 +1622,7 @@ function taxonomy_manager_term_data_edit() {
       $msg = t('Invalid language selection');
       $is_error_msg = TRUE; 
     }
-    else if (!count($typed_terms) && count($translation_terms) && empty($param['edit-term-data-translations-op-lang'])) {
+    else if (empty($param['edit-term-data-translations-op-lang'])) {
       $msg = t('Missing language for new term');
       $is_error_msg = TRUE; 
     }
@@ -1661,7 +1661,12 @@ function taxonomy_manager_term_data_edit() {
       }
       else {
         $typed_term_tids = array();
-        $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, TRUE, $param['edit-term-data-language']);
+        if ($attr_type == "translation") {
+          $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, TRUE, $param['edit-term-data-translations-op-lang']);
+        }
+        else {
+          $typed_term_tids = taxonomy_manager_autocomplete_tags_get_tids($values, $vid, TRUE, $param['edit-term-data-language']);
+        }
         $values = array();
         foreach ($typed_term_tids as $term_info) {
           $values[] = $term_info['tid'];
@@ -1739,11 +1744,7 @@ function taxonomy_manager_term_data_edit() {
       case 'translation':
         if (module_exists('i18ntaxonomy')) {
           if ($op == "add") {
-            $translation_term = $values[0];
-            if ($param['edit-term-data-translations-op-lang'] != "") {
-              _i18ntaxonomy_term_set_lang($translation_term, $param['edit-term-data-translations-op-lang']);
-            }
-            taxonomy_manager_add_translation($tid, $translation_term);
+            taxonomy_manager_add_translation($tid, $values[0]);
             $msg = t("Successfully added translation");
           }
           else if ($op == "delete") {
@@ -2241,7 +2242,7 @@ function taxonomy_manager_autocomplete_tags_get_tids($typed_input, $vid, $insert
     $possibilities = taxonomy_get_term_by_name($typed_term);
     $typed_term_tid = NULL; // tid match if any.
     foreach ($possibilities as $possibility) {
-      if ($possibility->vid == $vid) {
+      if ($possibility->vid == $vid && !($lang && $lang != $possibility->language)) {
         $typed_term_tid = $possibility->tid;
         $tids[$typed_term_tid]['tid'] = $typed_term_tid;
       }
