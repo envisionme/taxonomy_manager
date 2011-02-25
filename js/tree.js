@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * @files js for collapsible tree view with some helper functions for updating tree structure

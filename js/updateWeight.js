@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * @file js for changing weights of terms with Up and Down arrows

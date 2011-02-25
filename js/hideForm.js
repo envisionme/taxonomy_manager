@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * @file shows / hides form elements

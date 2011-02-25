@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * @file js support for term editing form for ajax saving and tree updating
