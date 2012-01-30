@@ -806,7 +806,9 @@ function taxonomy_manager_update_term_data_form($vid, $tid, $ahah = FALSE, $prin
   $form = form_get_cache($params['form_build_id'], $form_state);
   unset($form['term_data']);
   $form = form_builder($param['form_id'], $form, $form_state);*/
-  
+
+  $form_state = array();
+
   $term_form = taxonomy_manager_form_term_data($tid);
   $term_form['term_data']['save'] = array(
     '#type' => 'submit',
