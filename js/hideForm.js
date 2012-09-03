@@ -31,7 +31,7 @@ Drupal.attachHideForm = function(div, show_button, hide_button) {
   
   //don't hide if there is an error in the form
   $(div).find("input").each(function() {
-    if($.className.has(this, "error")) {
+    if ($(this).hasClass("error")) {
       hide = false;
     }
   });
